@@ -3,23 +3,28 @@
 The native backend connects to the separate `NativeGameVault`. It does not use
 the legacy USDC vault or Reown. `SERVER_MODE=demo` retains the existing guest
 server; `SERVER_MODE=native` requires authenticated wallet sessions and onchain
-escrow. No frontend source was changed for this integration.
+escrow. The user subsequently authorized native frontend wallet, login and
+transaction integration while preserving the game appearance, only on
+`codex/native-backend`.
 
 ## Current readiness
 
-- The contract and native backend are connected and exercised on local Anvil
-  with Monad execution rules and two signed development wallets.
+- The contract and native backend were tested on local Anvil and on Monad
+  Testnet with two funded temporary wallets: deposit, authenticated join,
+  escrow, game, settlement, withdraw and return of spendable remaining funds.
 - The public frontend domain supplied by the user is `https://dorprize.vercel.app`.
   Its existence does not mean that it already uses the native API.
-- The user supplied public MetaMask address
-  `0x50463168EBC5ae0Ed86efcA496b9A7A4495F7109`, now explicitly selected as owner.
-  The additional valid wallet is `0x5EaD190F2786362c556B9BF4798326d6e11b88F2`.
-  Proposed testnet roles: existing owner also deployer/treasury; new wallet operator;
-  one additional backend signer wallet is recommended. A two-wallet MVP can reuse
-  the new wallet for both server roles. Only owner assignment is confirmed; no
-  live roles or signing credentials have been configured. See `TESTNET_SETUP_ID.md`.
-- There is no recorded native testnet deployment, live backend hosting, production
-  PostgreSQL connection, or real MetaMask-to-backend demo yet.
+- The native vault is `0xEBAe4367eeDcaEfd839BaC833ac10574ae094537`.
+  Owner/treasury use `0x50463168EBC5ae0Ed86efcA496b9A7A4495F7109`;
+  operator/deployer use `0x5EaD190F2786362c556B9BF4798326d6e11b88F2`;
+  backend signer uses `0xF262fd0A43B499389b5d6ef6153e2A710685349b`.
+- The actual Supabase session connection is active with verified TLS and a
+  single-writer lock. Backend readiness and the live game test passed through
+  a free Cloudflare Quick Tunnel. Render requested card verification and no
+  Render service was created. See the [current handoff](../docs/NATIVE_TESTNET_HANDOFF_ID.md).
+- Frontend native code is implemented and production-build tested. The public
+  Vercel site has not been redeployed; an interactive MetaMask browser test
+  remains separate from the completed signed API/socket test.
 
 The current source layout is `frontend/`, `backend/`, `shared/` and `sc/`.
 Native integration was migrated onto the new GitHub history at `080c2c2`, then
@@ -48,8 +53,8 @@ role), since startup also enables RLS and revokes browser-role access using
 Browser `anon` and `authenticated` roles receive no policies or table privileges.
 Keep this table server-only. Configure hosting to run one
 replica. A lost DB connection fails subsequent journal operations closed until
-restart. The production PostgreSQL adapter still needs a smoke test against the
-actual production database. A separate suite runs a real ephemeral PostgreSQL
+restart. The actual Supabase database passed TLS, RLS, locking and live-game
+checks. A separate suite runs a real ephemeral PostgreSQL
 cluster and validates persistence, writer locking, RLS, browser-role denial and
 connection-loss recovery. The game end-to-end suite uses the durable file journal.
 

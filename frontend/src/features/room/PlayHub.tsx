@@ -11,6 +11,8 @@ import { useAccountView } from "@/features/wallet/account";
 import { useProfile } from "@/features/wallet/profile";
 import { WalletChip } from "@/features/wallet/components/TopBar";
 import { UsdcIcon } from "@/shared/ui/icons";
+import { parseMon } from "@/features/wallet/native/transactions";
+import { ASSET_SYMBOL, NATIVE_MODE } from "@/shared/backend/native";
 
 const QrScanner = dynamic(() => import("@/features/room/QrScanner"), { ssr: false });
 
@@ -131,20 +133,22 @@ function CreateRoom() {
   const router = useRouter();
   const name = useProfile((s) => s.name);
   const [roomName, setRoomName] = useState("");
-  const [bid, setBid] = useState(1);
+  const [bidText, setBidText] = useState("1");
+  const bid = Number(bidText);
   const [maxPlayers, setMaxPlayers] = useState(6);
   const [isPrivate, setIsPrivate] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   const submit = async () => {
-    if (bid < MIN_BID) return setError(`Bid minimal ${MIN_BID} USDC.`);
+    if (!Number.isFinite(bid) || bid < MIN_BID) return setError(`Bid minimal ${MIN_BID} ${ASSET_SYMBOL}.`);
     setBusy(true);
     try {
       const t = await getTransport();
       const { roomId } = await t.createRoom({
         name: roomName.trim() || `Room ${name}`,
         bid,
+        ...(NATIVE_MODE ? { bidWei: parseMon(bidText).toString() } : {}),
         maxPlayers,
         isPrivate,
       });
@@ -168,13 +172,13 @@ function CreateRoom() {
       </label>
 
       <div>
-        <span className="text-xs text-ash">Bid per pemain (USDC)</span>
+        <span className="text-xs text-ash">Bid per pemain ({ASSET_SYMBOL})</span>
         <div className="mt-1 flex flex-wrap gap-2">
           {[1, 2, 5, 10].map((v) => (
             <button
               key={v}
               type="button"
-              onClick={() => setBid(v)}
+              onClick={() => setBidText(String(v))}
               className={`rounded-md px-4 py-2 font-pixel ${bid === v ? "bg-gold text-ink" : "bg-white/5 text-stone"}`}
             >
               {v}
@@ -183,8 +187,8 @@ function CreateRoom() {
           <input
             type="number"
             min={MIN_BID}
-            value={bid}
-            onChange={(e) => setBid(Math.max(0, Number(e.target.value)))}
+            value={bidText}
+            onChange={(e) => setBidText(e.target.value)}
             className="w-24 rounded-md border-2 border-white/10 bg-black/60 px-2 font-pixel text-stone outline-none focus:border-gold"
             aria-label="Bid custom"
           />
@@ -226,8 +230,11 @@ function CreateRoom() {
       </label>
 
       <div className="rounded-lg bg-white/5 p-3 text-sm text-ash">
-        Pot penuh: <b className="text-gold">{formatUsdc(bid * maxPlayers)} USDC</b> jika {maxPlayers} pemain. Tanpa
-        potongan platform.
+        Pot penuh:{" "}
+        <b className="text-gold">
+          {formatUsdc(bid * maxPlayers)} {ASSET_SYMBOL}
+        </b>{" "}
+        jika {maxPlayers} pemain. Tanpa potongan platform.
       </div>
 
       {error && <div className="text-sm text-danger">{error}</div>}

@@ -9,6 +9,8 @@ import { useProfile } from "@/features/wallet/profile";
 import { SkinPreview } from "@/features/game/three/SkinPreview";
 import { CrownIcon, TrophyIcon, UsdcIcon } from "@/shared/ui/icons";
 import { WalletModal, type WalletTab } from "@/features/wallet/components/WalletModal";
+import { ASSET_SYMBOL, NATIVE_MODE } from "@/shared/backend/native";
+import { useWallet } from "@/features/wallet/web3/WalletProvider";
 
 export function ProfileChip() {
   const p = useProfile(
@@ -85,8 +87,13 @@ export function WalletChip() {
             {a.mode === "demo" ? "DEMO" : shortAddress(a.address)}
           </button>
         </div>
-        {a.locked > 0 && <div className="text-[11px] text-ash">Terkunci: {formatUsdc(a.locked)} USDC</div>}
+        {a.locked > 0 && (
+          <div className="text-[11px] text-ash">
+            Terkunci: {a.lockedDisplay} {ASSET_SYMBOL}
+          </div>
+        )}
         <div className="flex gap-1">
+          {NATIVE_MODE && <NativeLoginButton />}
           <button
             type="button"
             onClick={() => setTab("deposit")}
@@ -112,5 +119,20 @@ export function WalletChip() {
       </div>
       {tab && <WalletModal tab={tab} onTab={setTab} onClose={() => setTab(null)} />}
     </>
+  );
+}
+
+function NativeLoginButton() {
+  const wallet = useWallet();
+  if (wallet.isBackendAuthenticated) return null;
+  return (
+    <button
+      type="button"
+      disabled={wallet.isBackendAuthLoading}
+      onClick={() => void (wallet.isMonadChain ? wallet.ensureBackendSession() : wallet.switchToMonad())}
+      className="btn-stone px-2 py-1 text-[10px]"
+    >
+      {wallet.isBackendAuthLoading ? "LOGIN…" : wallet.isMonadChain ? "LOGIN GAME" : "PINDAH JARINGAN"}
+    </button>
   );
 }

@@ -2,7 +2,7 @@
 
 `NativeGameVault.sol` implements the current DOR PRIZE money flow on Monad Testnet (10143). It is a **new non-upgradeable contract**, not an upgrade of the USDC `GameVault` proxy. Import `@dorprize/contracts/native`. Existing root exports and USDC contracts remain for compatibility.
 
-The operator determines game results. The contract checks access, room membership, accounting and lifecycle; `resultHash` does not prove fair gameplay. No native testnet deployment has been recorded yet. A native backend adapter is implemented and tested locally; see [backend integration and UI handoff](../backend/NATIVE_BACKEND.md). UI integration remains separate.
+The operator determines game results. The contract checks access, room membership, accounting and lifecycle; `resultHash` does not prove fair gameplay. Monad Testnet deployment is recorded in [10143.json](deployments/native/10143.json): `0xEBAe4367eeDcaEfd839BaC833ac10574ae094537`, verified by Sourcify with status `match`. Two live wallets completed deposit, escrow, game, settlement and withdrawal; see the [testnet handoff](../docs/NATIVE_TESTNET_HANDOFF_ID.md) and [public smoke receipts](../docs/native-testnet-smoke.json).
 
 ## Roles and accounting
 

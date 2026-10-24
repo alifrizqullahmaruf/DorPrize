@@ -26,7 +26,8 @@
     "sc:abi": "npm run abi -w @dorprize/contracts",
     "sc:deploy": "npm run deploy:monad -w @dorprize/contracts --",
     "test:native": "npm run test:native -w @dorprize/backend",
-    "test:postgres": "npm run test:postgres -w @dorprize/backend"
+    "test:postgres": "npm run test:postgres -w @dorprize/backend",
+    "test:frontend:native": "node --import tsx --test frontend/src/features/wallet/native/validation.test.ts"
   },
   "devDependencies": {
     "concurrently": "^9.2.5",

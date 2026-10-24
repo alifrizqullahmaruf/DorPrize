@@ -13,6 +13,8 @@ import {
 } from "@/features/wallet/web3/contracts";
 import { IS_DEMO } from "@/features/wallet/account";
 import { useProfile } from "@/features/wallet/profile";
+import { NATIVE_MODE } from "@/shared/backend/native";
+import { hasNativeEntry, leaveNativeRoom } from "@/features/wallet/native/transactions";
 
 /**
  * Lock bids in RoomManager on join. Off (default) until the backend issues
@@ -22,7 +24,7 @@ import { useProfile } from "@/features/wallet/profile";
 const BIDS_ON_CHAIN = process.env.NEXT_PUBLIC_ONCHAIN_BIDS === "1";
 
 /** Whether joining a room actually locks the bid (simulated balance in demo mode). */
-export const BIDS_LOCKED = IS_DEMO || BIDS_ON_CHAIN;
+export const BIDS_LOCKED = IS_DEMO || NATIVE_MODE || BIDS_ON_CHAIN;
 
 export type JoinRoomTx = {
   /** Lock the bid for `roomId`. Resolves true when the player may ready up. */
@@ -97,4 +99,12 @@ function useChainJoin(): JoinRoomTx {
   };
 }
 
-export const useJoinRoomTx: () => JoinRoomTx = IS_DEMO ? useDemoJoin : useChainJoin;
+function useNativeJoin(): JoinRoomTx {
+  return {
+    lockBid: async (roomId) => (await hasNativeEntry(roomId)).entry.joined,
+    releaseBid: async (roomId) => leaveNativeRoom(roomId),
+    forfeitBid: () => {},
+  };
+}
+
+export const useJoinRoomTx: () => JoinRoomTx = IS_DEMO ? useDemoJoin : NATIVE_MODE ? useNativeJoin : useChainJoin;

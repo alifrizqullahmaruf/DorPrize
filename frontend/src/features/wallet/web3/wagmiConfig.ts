@@ -1,5 +1,6 @@
 import type { Chain } from "viem";
 import { MONAD_CHAIN } from "@/features/wallet/web3/monad";
+import { ASSET_SYMBOL } from "@/shared/backend/native";
 
 const FALLBACK_CHAIN_ID = 10143;
 const FALLBACK_RPC_URL = "https://testnet-rpc.monad.xyz";
@@ -41,7 +42,7 @@ export const projectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID || "demo-proje
 
 export const appKitMetadata = {
   name: "DOR PRIZE",
-  description: "Blind shooter grid game with USDC pot on Monad testnet.",
+  description: `Blind shooter grid game with ${ASSET_SYMBOL} pot on Monad testnet.`,
   url: typeof window !== "undefined" ? window.location.origin : "http://localhost:3000",
   icons: ["https://avatars.githubusercontent.com/u/37784886"],
 };

@@ -2,10 +2,12 @@
 
 > **Native MON integration:** the current money flow uses MON on Monad Testnet
 > with MetaMask. [Native contracts](sc/NATIVE_MON.md) and the
-> [authenticated backend](backend/NATIVE_BACKEND.md) are implemented for local
-> testing. The frontend's existing USDC/demo adapter remains for the UI team to
-> migrate. No native testnet deployment is recorded. The prototype instructions
-> below describe the legacy flow. Current progress: [context.md](context.md).
+> [authenticated backend](backend/NATIVE_BACKEND.md) are deployed and tested with
+> two wallets on chain 10143. The native MetaMask frontend is available on
+> `codex/native-backend`; the public Vercel frontend has not been redeployed.
+> See the [current testnet handoff](docs/NATIVE_TESTNET_HANDOFF_ID.md) for the
+> contract, temporary free backend, environment and test receipts. The prototype
+> instructions below describe the legacy flow. Current progress: [context.md](context.md).
 
 A blind-shot arena game for 2–10 players on a shrinking lava board, built for **Monad Blitz #2**. Players bet testnet USDC; the last one standing takes the pot. Product spec: [docs/PRD.md](docs/PRD.md).
 

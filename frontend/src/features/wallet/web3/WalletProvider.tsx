@@ -1,14 +1,16 @@
 "use client";
 /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps -- vendored from PassChick */
 
-import { useAppKit } from "@reown/appkit/react";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { SiweMessage } from "siwe";
-import { useAccount, useDisconnect, useSignMessage, useSwitchChain } from "wagmi";
+import { useAccount, useConnect, useDisconnect, useSignMessage, useSwitchChain } from "wagmi";
+import { validateNativeChallenge } from "@/features/wallet/native/validation";
+import { getAccount } from "@wagmi/core";
 import { backendFetch, backendPost } from "@/shared/backend/api";
 import { BACKEND_API_URL, hasBackendApiConfig } from "@/shared/backend/config";
-import { ensureAppKitInitialized } from "@/features/wallet/web3/appKit";
+import { openLegacyWallet, wagmiAdapter } from "@/features/wallet/web3/appKit";
+import { getNativeSession, NATIVE_MODE, setNativeSession } from "@/shared/backend/native";
 import { MONAD_CHAIN, hasMonadChainConfig } from "@/features/wallet/web3/monad";
 import { readRawErrorMessage, toUserFacingWalletError } from "@/shared/lib/errors";
 
@@ -105,8 +107,8 @@ export function WalletProvider({ children }: WalletProviderProps) {
     lastResult: false,
     account: "",
   });
-  const { open } = useAppKit();
-  const { address, chainId, isConnected } = useAccount();
+  const { connectAsync, connectors } = useConnect();
+  const { address, chainId, isConnected, status: connectionStatus } = useAccount();
   const { disconnectAsync } = useDisconnect();
   const { signMessageAsync } = useSignMessage();
   const { switchChainAsync, isPending: isSwitchPending } = useSwitchChain();
@@ -126,8 +128,11 @@ export function WalletProvider({ children }: WalletProviderProps) {
     setIsAppKitOpening(true);
 
     try {
-      await ensureAppKitInitialized();
-      await open();
+      if (NATIVE_MODE) {
+        const connector = connectors.find((candidate) => candidate.id === "metaMask" || candidate.name === "MetaMask");
+        if (!connector) throw new Error("Pasang MetaMask untuk menghubungkan wallet.");
+        await connectAsync({ connector });
+      } else await openLegacyWallet();
     } catch (connectError) {
       setError(
         toUserFacingWalletError(connectError, "Failed to open wallet modal.", {
@@ -224,6 +229,10 @@ export function WalletProvider({ children }: WalletProviderProps) {
       setBackendAddress("");
       return false;
     }
+    if (NATIVE_MODE && !getNativeSession()) {
+      setBackendAddress("");
+      return false;
+    }
 
     const now = Date.now();
     const snapshot = backendSessionRef.current;
@@ -244,7 +253,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
         const response = await backendFetch<{
           authenticated: boolean;
           address: string;
-        }>("/auth/me");
+        }>(NATIVE_MODE ? "/auth/session" : "/auth/me");
         const sessionAddress = response.address?.toLowerCase?.() || "";
         if (!sessionAddress || (normalizedAccount && sessionAddress !== normalizedAccount)) {
           setBackendAddress("");
@@ -277,6 +286,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
         return false;
       } finally {
         setBackendAuthLoading(false);
+        backendSessionRef.current.inFlight = null;
       }
     })();
 
@@ -298,11 +308,45 @@ export function WalletProvider({ children }: WalletProviderProps) {
       setBackendAuthError("Connect wallet first before signing in to backend.");
       return false;
     }
+    if (NATIVE_MODE && (!isMonadChain || chainId !== 10143)) {
+      setBackendAuthError("Pindah ke Monad Testnet sebelum login.");
+      return false;
+    }
 
     setBackendAuthLoading(true);
     setBackendAuthError("");
 
     try {
+      if (NATIVE_MODE) {
+        const challenge = await backendPost<{ challengeId: string; message: string; expiresAt: number }>(
+          "/auth/challenge",
+          { address: account },
+        );
+        validateNativeChallenge(challenge, account, window.location.origin);
+        const signature = await signMessageAsync({ message: challenge.message, account: address });
+        const result = await backendPost<{ token: string; address: string; expiresAt: number }>("/auth/verify", {
+          challengeId: challenge.challengeId,
+          signature,
+        });
+        const current = getAccount(wagmiAdapter.wagmiConfig);
+        if (current.address?.toLowerCase() !== normalizedAccount || current.chainId !== 10143)
+          throw new Error("Wallet berubah saat login. Silakan login ulang.");
+        if (
+          result.address.toLowerCase() !== normalizedAccount ||
+          !/^[0-9a-f]{64}$/.test(result.token) ||
+          result.expiresAt <= Date.now()
+        )
+          throw new Error("Sesi backend tidak valid.");
+        setNativeSession(result);
+        setBackendAddress(normalizedAccount);
+        backendSessionRef.current = {
+          inFlight: null,
+          lastCheckedAt: Date.now(),
+          lastResult: true,
+          account: normalizedAccount,
+        };
+        return true;
+      }
       const { nonce } = await backendFetch<{ nonce: string }>("/auth/nonce");
       const domain = window.location.host;
       const origin = window.location.origin;
@@ -381,6 +425,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
     } catch {
       // Ignore logout failures on local dev; frontend state is still cleared.
     } finally {
+      if (NATIVE_MODE) setNativeSession(null);
       setBackendAddress("");
       setBackendAuthError("");
       setBackendAuthLoading(false);
@@ -388,12 +433,37 @@ export function WalletProvider({ children }: WalletProviderProps) {
   }
 
   useEffect(() => {
+    if (NATIVE_MODE) {
+      const existing = getNativeSession();
+      if (
+        existing &&
+        (connectionStatus === "disconnected" ||
+          (connectionStatus === "connected" && (!isMonadChain || existing.address.toLowerCase() !== normalizedAccount)))
+      ) {
+        setNativeSession(null);
+        backendSessionRef.current = { inFlight: null, lastCheckedAt: 0, lastResult: false, account: normalizedAccount };
+        setBackendAddress("");
+      }
+    }
     if (!isConnected) {
       setError("");
       setBackendAddress("");
       setBackendAuthError("");
     }
-  }, [isConnected]);
+  }, [isConnected, normalizedAccount, isMonadChain, connectionStatus]);
+
+  useEffect(() => {
+    if (!NATIVE_MODE) return;
+    const syncSession = () => {
+      const current = getNativeSession();
+      const valid = current?.address.toLowerCase() === normalizedAccount && isMonadChain;
+      setBackendAddress(valid ? current!.address.toLowerCase() : "");
+      if (!valid)
+        backendSessionRef.current = { inFlight: null, lastCheckedAt: 0, lastResult: false, account: normalizedAccount };
+    };
+    window.addEventListener("dorprize:native-session", syncSession);
+    return () => window.removeEventListener("dorprize:native-session", syncSession);
+  }, [normalizedAccount, isMonadChain]);
 
   useEffect(() => {
     if (!hasBackendConfig || !isConnected || !account) {

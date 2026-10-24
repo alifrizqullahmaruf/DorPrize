@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { ASSET_SYMBOL } from "@/shared/backend/native";
 import { formatUsdc, skillCost, SKILLS } from "@dorprize/game-core";
 import type { Skill } from "@dorprize/game-core";
 import { IS_DEMO } from "@/features/wallet/account";
@@ -90,11 +91,15 @@ export function SkillConfirmModal({ skill, bid, budget, onConfirm, onCancel }: P
           </div>
           <div className="mt-1.5 flex items-center justify-between text-xs text-ash">
             <span>Saldo tersedia</span>
-            <span className="font-pixel text-stone">{formatUsdc(budget)} USDC</span>
+            <span className="font-pixel text-stone">
+              {formatUsdc(budget)} {ASSET_SYMBOL}
+            </span>
           </div>
           <div className="mt-1 flex items-center justify-between text-xs text-ash">
             <span>Saldo setelah beli</span>
-            <span className={`font-pixel ${after < 0 ? "text-danger" : "text-stone"}`}>{formatUsdc(after)} USDC</span>
+            <span className={`font-pixel ${after < 0 ? "text-danger" : "text-stone"}`}>
+              {formatUsdc(after)} {ASSET_SYMBOL}
+            </span>
           </div>
         </div>
 

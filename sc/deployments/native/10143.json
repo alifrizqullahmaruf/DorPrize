@@ -1,0 +1,17 @@
+{
+  "chainId": 10143,
+  "asset": "MON",
+  "decimals": 18,
+  "NativeGameVault": "0xEBAe4367eeDcaEfd839BaC833ac10574ae094537",
+  "deploymentTxHash": "0x2e4c72c4082bb4161778f32b342f04cf4d4093022cba904eef1e1da19031477b",
+  "owner": "0x50463168EBC5ae0Ed86efcA496b9A7A4495F7109",
+  "operator": "0x5EaD190F2786362c556B9BF4798326d6e11b88F2",
+  "backendSigner": "0xF262fd0A43B499389b5d6ef6153e2A710685349b",
+  "treasury": "0x50463168EBC5ae0Ed86efcA496b9A7A4495F7109",
+  "rpcUrl": "https://testnet-rpc.monad.xyz",
+  "explorerUrl": "https://testnet.monadvision.com",
+  "contractUrl": "https://testnet.monadvision.com/address/0xEBAe4367eeDcaEfd839BaC833ac10574ae094537",
+  "transactionUrl": "https://testnet.monadvision.com/tx/0x2e4c72c4082bb4161778f32b342f04cf4d4093022cba904eef1e1da19031477b",
+  "abiPath": "sc/out/NativeGameVault.sol/NativeGameVault.json",
+  "abiExport": "@dorprize/contracts/native"
+}

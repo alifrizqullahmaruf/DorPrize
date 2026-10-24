@@ -1,4 +1,5 @@
 import { BACKEND_API_URL } from "@/shared/backend/config";
+import { getNativeSession, NATIVE_MODE, setNativeSession } from "@/shared/backend/native";
 
 type JsonPrimitive = string | number | boolean | null;
 type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
@@ -21,9 +22,10 @@ export async function backendFetch<T>(path: string, init?: RequestInit): Promise
   try {
     response = await fetch(buildUrl(path), {
       ...init,
-      credentials: "include",
+      credentials: NATIVE_MODE ? "omit" : "include",
       headers: {
         "content-type": "application/json",
+        ...(NATIVE_MODE && getNativeSession() ? { authorization: `Bearer ${getNativeSession()!.token}` } : {}),
         ...(init?.headers || {}),
       },
       cache: "no-store",
@@ -48,6 +50,7 @@ export async function backendFetch<T>(path: string, init?: RequestInit): Promise
   const payload = isJson ? ((await response.json()) as T | { error?: string }) : null;
 
   if (!response.ok) {
+    if (NATIVE_MODE && response.status === 401) setNativeSession(null);
     const errorMessage =
       payload && typeof payload === "object" && "error" in payload
         ? String((payload as { error?: string }).error || "Request failed.")

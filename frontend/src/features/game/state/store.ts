@@ -118,8 +118,8 @@ export const useGame = create<GameState>((set, get) => ({
 
   connect: async () => {
     const existing = get().transport;
-    if (existing) return existing;
-    const t = await getTransport();
+    if (existing) await existing.connect();
+    const t = existing ?? (await getTransport());
     unsubs.forEach((u) => u());
     // A player may still get events from a room they left, or that another tab is in.
     const isCurrent = (roomId: string) => roomId === get().roomId;

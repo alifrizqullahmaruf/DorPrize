@@ -41,13 +41,13 @@ function parseChainId(rawValue: string) {
   };
 }
 
-const parsedChainId = parseChainId(process.env.NEXT_PUBLIC_MONAD_CHAIN_ID || "");
-const chainName = process.env.NEXT_PUBLIC_MONAD_CHAIN_NAME || "Monad";
+const parsedChainId = parseChainId(process.env.NEXT_PUBLIC_MONAD_CHAIN_ID || "10143");
+const chainName = process.env.NEXT_PUBLIC_MONAD_CHAIN_NAME || "Monad Testnet";
 const nativeCurrencyName = process.env.NEXT_PUBLIC_MONAD_NATIVE_NAME || "MON";
 const nativeCurrencySymbol = process.env.NEXT_PUBLIC_MONAD_NATIVE_SYMBOL || "MON";
 const nativeCurrencyDecimals = Number(process.env.NEXT_PUBLIC_MONAD_NATIVE_DECIMALS || "18");
-const rpcUrls = splitList(process.env.NEXT_PUBLIC_MONAD_RPC_URLS || "");
-const blockExplorerUrls = splitList(process.env.NEXT_PUBLIC_MONAD_EXPLORER_URLS || "");
+const rpcUrls = splitList(process.env.NEXT_PUBLIC_MONAD_RPC_URLS || "https://testnet-rpc.monad.xyz");
+const blockExplorerUrls = splitList(process.env.NEXT_PUBLIC_MONAD_EXPLORER_URLS || "https://testnet.monadvision.com");
 
 export const MONAD_CHAIN: MonadChainConfig = {
   chainIdHex: parsedChainId.chainIdHex,

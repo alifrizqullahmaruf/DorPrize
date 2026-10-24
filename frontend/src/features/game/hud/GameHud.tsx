@@ -16,6 +16,7 @@ import { ResultModal } from "@/features/game/hud/ResultModal";
 import { SettingsModal } from "@/features/game/hud/SettingsModal";
 import { SkillConfirmModal } from "@/features/game/hud/SkillConfirmModal";
 import { SkillIcon, UsdcIcon } from "@/shared/ui/icons";
+import { ASSET_SYMBOL, NATIVE_MODE } from "@/shared/backend/native";
 
 /**
  * performance.now() clock for the resolve animation. Everything the HUD shows
@@ -82,7 +83,7 @@ export function GameHud() {
   );
   const perfNow = useAnimClock(boundaries);
   const bid = room?.bid ?? 0;
-  const budget = account.available - g.spent;
+  const budget = (NATIVE_MODE ? (account.skillBudget ?? 0) : account.available) - g.spent;
 
   const secondsLeft =
     phase === "input" && round
@@ -110,7 +111,7 @@ export function GameHud() {
   // whatever is planned just before the deadline.
   useEffect(() => {
     if (phase !== "input" || g.locked || !me.alive || !round) return;
-    const wait = round.deadline - Date.now() - 400;
+    const wait = round.deadline - Date.now() - (NATIVE_MODE ? 900 : 400);
     const id = setTimeout(() => useGame.getState().lock(), Math.max(0, wait));
     return () => clearTimeout(id);
   }, [phase, g.locked, me.alive, round]);
@@ -311,7 +312,7 @@ export function GameHud() {
         </div>
         <div className="flex gap-1.5">
           <div className="panel px-3 py-1.5 text-[11px] text-ash sm:text-xs">
-            Saldo skill: <b className="text-gold">{formatUsdc(Math.max(0, budget))}</b> USDC
+            Saldo skill: <b className="text-gold">{formatUsdc(Math.max(0, budget))}</b> {ASSET_SYMBOL}
           </div>
           <button
             type="button"

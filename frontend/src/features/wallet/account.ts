@@ -5,13 +5,16 @@ import { useWallet } from "@/features/wallet/web3/WalletProvider";
 import { useOnchainDepositFlow } from "@/features/wallet/deposit/useOnchainDepositFlow";
 import { formatUsdc } from "@dorprize/game-core";
 import { useProfile } from "@/features/wallet/profile";
+import { NATIVE_MODE } from "@/shared/backend/native";
+import { useNativeAccount } from "@/features/wallet/native/useNativeAccount";
 
 /**
  * DEMO mode keeps balances in the browser (no wallet, no RPC). It is on when
  * NEXT_PUBLIC_DEMO_OFFLINE=1 or no Reown project id is configured, so the
  * game can always be shown even if Monad RPC or the backend is down.
  */
-export const IS_DEMO = process.env.NEXT_PUBLIC_DEMO_OFFLINE === "1" || !process.env.NEXT_PUBLIC_REOWN_PROJECT_ID;
+export const IS_DEMO =
+  process.env.NEXT_PUBLIC_DEMO_OFFLINE === "1" || (!NATIVE_MODE && !process.env.NEXT_PUBLIC_REOWN_PROJECT_ID);
 
 export const DEMO_FAUCET_AMOUNT = 100;
 
@@ -21,6 +24,7 @@ export type AccountView = {
   address: string;
   available: number;
   locked: number;
+  skillBudget?: number;
   availableDisplay: string;
   lockedDisplay: string;
   walletDisplay: string;
@@ -133,4 +137,8 @@ function useChainAccount(): AccountView {
   };
 }
 
-export const useAccountView: () => AccountView = IS_DEMO ? useDemoAccount : useChainAccount;
+export const useAccountView: () => AccountView = IS_DEMO
+  ? useDemoAccount
+  : NATIVE_MODE
+    ? useNativeAccount
+    : useChainAccount;

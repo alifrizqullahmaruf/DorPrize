@@ -1,5 +1,4 @@
 "use client";
-/* eslint-disable react-hooks/set-state-in-effect -- vendored from PassChick */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
@@ -16,8 +15,13 @@ export function Web3Provider({ children }: Web3ProviderProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    ensureAppKitInitialized();
-    setMounted(true);
+    let cancelled = false;
+    void ensureAppKitInitialized().then(() => {
+      if (!cancelled) setMounted(true);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (!mounted) return null;

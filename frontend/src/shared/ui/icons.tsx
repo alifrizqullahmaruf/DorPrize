@@ -1,4 +1,5 @@
 import type { Skill } from "@dorprize/game-core";
+import { NATIVE_MODE } from "@/shared/backend/native";
 
 /** 12×12 pixel-art icons drawn with rects (crisp at any size). */
 const ICONS: Record<Skill, [number, number, number, number, string][]> = {
@@ -69,6 +70,13 @@ export function CrownIcon({ size = 16 }: { size?: number }) {
 }
 
 export function UsdcIcon({ size = 16 }: { size?: number }) {
+  if (NATIVE_MODE)
+    return (
+      <svg width={size} height={size} viewBox="0 0 12 12" aria-hidden>
+        <path d="M6 1 11 4 9 10 3 11 1 6Z" fill="#836EF9" />
+        <path d="M6 3 9 5 7.5 8 4.5 9 3 6Z" fill="#1a1238" />
+      </svg>
+    );
   return (
     <svg width={size} height={size} viewBox="0 0 12 12" shapeRendering="crispEdges" aria-hidden>
       <rect x="3" y="1" width="6" height="10" fill="#2775ca" />

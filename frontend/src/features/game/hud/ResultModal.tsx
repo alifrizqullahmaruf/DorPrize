@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { sfx } from "@/shared/audio/sfx";
-import { backendPost } from "@/shared/backend/api";
+import { backendFetch, backendPost } from "@/shared/backend/api";
+import { ASSET_SYMBOL, getNativeSession, NATIVE_MODE } from "@/shared/backend/native";
+import { formatEther } from "viem";
 import { formatUsdc, MAX_ROUNDS } from "@dorprize/game-core";
 import { useGame } from "@/features/game/state/store";
 import { IS_DEMO } from "@/features/wallet/account";
@@ -61,6 +63,52 @@ export function ResultModal() {
   const done = useRef(false);
   const [claim, setClaim] = useState<"" | "busy" | "ok" | "err">("");
   const [claimMsg, setClaimMsg] = useState("");
+  const [exactPayout, setExactPayout] = useState<string | null>(null);
+
+  type NativeResult = {
+    status: string;
+    txHash: string | null;
+    result: { recipients: string[]; amountsWei: string[] } | null;
+  };
+  const applyNativeResult = (response: NativeResult) => {
+    const address = getNativeSession()?.address.toLowerCase();
+    if (response.result) {
+      const index = response.result.recipients.findIndex((recipient) => recipient.toLowerCase() === address);
+      setExactPayout(index < 0 ? "0" : formatEther(BigInt(response.result.amountsWei[index])));
+    }
+    if (response.status === "settled" && response.txHash) {
+      setClaim("ok");
+      setClaimMsg("Settlement terkonfirmasi. Saldo Vault sudah diperbarui.");
+      window.dispatchEvent(new Event("dorprize:native-balance"));
+    } else if (response.status === "cancelled") {
+      setClaim("err");
+      setClaimMsg("Match dibatalkan. Cadangan dikembalikan mengikuti refund kontrak.");
+    } else setClaimMsg("Menunggu konfirmasi settlement di jaringan.");
+  };
+
+  useEffect(() => {
+    if (!NATIVE_MODE) return;
+    let stopped = false;
+    const poll = async () => {
+      try {
+        const result = await backendFetch<NativeResult>(`/matches/${encodeURIComponent(room.roomId)}/result`);
+        if (!stopped) {
+          applyNativeResult(result);
+          if (!["settled", "cancelled"].includes(result.status)) timer = setTimeout(poll, 2500);
+        }
+      } catch {
+        if (!stopped) timer = setTimeout(poll, 5000);
+      }
+    };
+    let timer: ReturnType<typeof setTimeout>;
+    void poll();
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+    };
+    // Result records remain bound to this match; token/account changes unmount the room gate.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room.roomId]);
 
   useEffect(() => {
     if (done.current) return;
@@ -74,9 +122,14 @@ export function ResultModal() {
   const onClaim = async () => {
     setClaim("busy");
     try {
-      await backendPost("/api/game/submit-settlement", { roomId: room.roomId });
-      setClaim("ok");
-      setClaimMsg("Settlement terkirim. Hadiah masuk saldo Vault.");
+      const result = await backendPost<NativeResult>("/api/game/submit-settlement", { roomId: room.roomId });
+      if (NATIVE_MODE) {
+        setClaim("");
+        applyNativeResult(result);
+      } else {
+        setClaim("ok");
+        setClaimMsg("Settlement terkirim. Hadiah masuk saldo Vault.");
+      }
     } catch (e) {
       setClaim("err");
       setClaimMsg(e instanceof Error ? e.message : "Gagal klaim.");
@@ -106,18 +159,22 @@ export function ResultModal() {
 
         {won && (
           <div className="mx-auto mt-4 flex w-fit items-center gap-2 rounded-lg bg-[#2a1f06] px-4 py-2 font-pixel text-2xl text-gold">
-            <UsdcIcon size={22} /> +{formatUsdc(payout)}
+            <UsdcIcon size={22} /> +{NATIVE_MODE ? (exactPayout ?? "…") : formatUsdc(payout)}
           </div>
         )}
 
         <dl className="mt-4 grid grid-cols-2 gap-2 text-left text-xs">
           <div className="rounded bg-white/5 px-2 py-1.5">
             <dt className="text-ash">Bid</dt>
-            <dd className="font-pixel">{formatUsdc(room.bid)} USDC</dd>
+            <dd className="font-pixel">
+              {formatUsdc(room.bid)} {ASSET_SYMBOL}
+            </dd>
           </div>
           <div className="rounded bg-white/5 px-2 py-1.5">
             <dt className="text-ash">Biaya skill</dt>
-            <dd className="font-pixel">{formatUsdc(fees)} USDC</dd>
+            <dd className="font-pixel">
+              {formatUsdc(fees)} {ASSET_SYMBOL}
+            </dd>
           </div>
           <div className="rounded bg-white/5 px-2 py-1.5">
             <dt className="flex items-center gap-1 text-ash">
@@ -134,7 +191,7 @@ export function ResultModal() {
         </dl>
         <div className={`mt-2 text-xs ${net >= 0 ? "text-gold" : "text-ash"}`}>
           Bersih: {net >= 0 ? "+" : ""}
-          {formatUsdc(net)} USDC
+          {formatUsdc(net)} {ASSET_SYMBOL}
         </div>
 
         {/* On-chain claim needs locked bids (backend settlement). */}

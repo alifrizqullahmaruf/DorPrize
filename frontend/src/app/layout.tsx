@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Silkscreen } from "next/font/google";
 import { Providers } from "@/shared/providers/Providers";
+import { ASSET_SYMBOL } from "@/shared/backend/native";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -21,8 +22,7 @@ const pixel = Silkscreen({
 
 export const metadata: Metadata = {
   title: "DOR PRIZE",
-  description:
-    "Game tembak buta di papan lava. Pemain terakhir yang bertahan mengambil seluruh pot USDC. Monad testnet.",
+  description: `Game tembak buta di papan lava. Pemain terakhir yang bertahan mengambil seluruh pot ${ASSET_SYMBOL}. Monad testnet.`,
 };
 
 export const viewport: Viewport = {

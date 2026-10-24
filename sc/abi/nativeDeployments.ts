@@ -2,4 +2,8 @@
 
 export type NativeContractAddresses = { NativeGameVault: `0x${string}` };
 /** Confirmed native deployments only. Empty until a real deployment is recorded. */
-export const nativeDeployments: Record<number, NativeContractAddresses> = {};
+export const nativeDeployments: Record<number, NativeContractAddresses> = {
+  "10143": {
+    "NativeGameVault": "0xEBAe4367eeDcaEfd839BaC833ac10574ae094537"
+  }
+};

@@ -3,9 +3,9 @@ name: Native backend and contracts
 on:
   push:
     branches: [main, "codex/**"]
-    paths: ["backend/**", "sc/**", "shared/**", "package*.json", ".github/workflows/native-checks.yml"]
+    paths: ["backend/**", "frontend/**", "sc/**", "shared/**", "package*.json", ".github/workflows/native-checks.yml"]
   pull_request:
-    paths: ["backend/**", "sc/**", "shared/**", "package*.json", ".github/workflows/native-checks.yml"]
+    paths: ["backend/**", "frontend/**", "sc/**", "shared/**", "package*.json", ".github/workflows/native-checks.yml"]
 
 permissions:
   contents: read
@@ -32,6 +32,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+      - run: npm run test:frontend:native
       - run: forge fmt --check
         working-directory: sc
       - run: npm run test:monad -w @dorprize/contracts

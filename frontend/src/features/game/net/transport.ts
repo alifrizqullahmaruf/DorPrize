@@ -7,7 +7,7 @@ export interface GameTransport {
   on<E extends keyof ServerEvents>(event: E, cb: (payload: ServerEvents[E]) => void): Unsubscribe;
   emit<E extends keyof ClientEvents>(event: E, payload: ClientEvents[E]): void;
   listRooms(): Promise<RoomSummary[]>;
-  createRoom(input: CreateRoomInput): Promise<{ roomId: string }>;
+  createRoom(input: CreateRoomInput & { bidWei?: string }): Promise<{ roomId: string }>;
 }
 
 export const TRANSPORT_KIND: "mock" | "socket" =
@@ -29,5 +29,8 @@ export function getTransport(): Promise<GameTransport> {
     pending = null;
     throw e;
   });
-  return pending;
+  return pending.then(async (transport) => {
+    await transport.connect();
+    return transport;
+  });
 }

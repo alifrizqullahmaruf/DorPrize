@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ProfileChip, WalletChip } from "@/features/wallet/components/TopBar";
 import { MenuBackdrop } from "@/features/menu/MenuBackdrop";
 import { Logo } from "@/shared/ui/Logo";
+import { ASSET_SYMBOL } from "@/shared/backend/native";
 
 export function MainMenu() {
   const [help, setHelp] = useState(false);
@@ -45,7 +46,7 @@ export function MainMenu() {
 
 function HowToPlay({ onClose }: { onClose: () => void }) {
   const steps = [
-    ["Masuk room", "Pilih room, kunci bid (min. 1 USDC). Pot = bid × jumlah pemain."],
+    ["Masuk room", `Pilih room, kunci bid (min. 1 ${ASSET_SYMBOL}). Pot = bid × jumlah pemain.`],
     [
       "15 detik rahasia",
       "Pilih langkah (8 arah atau diam), arah tembak, dan opsional 1 skill. Lawan tidak pernah terlihat.",

@@ -2,6 +2,7 @@
 
 import { useAccountView, shortAddress, DEMO_FAUCET_AMOUNT } from "@/features/wallet/account";
 import { UsdcIcon } from "@/shared/ui/icons";
+import { ASSET_SYMBOL, NATIVE_MODE } from "@/shared/backend/native";
 
 export type WalletTab = "deposit" | "withdraw" | "faucet";
 
@@ -15,7 +16,7 @@ export function WalletModal({
   onClose: () => void;
 }) {
   const a = useAccountView();
-  const withdrawBlocked = a.locked > 0;
+  const withdrawBlocked = !NATIVE_MODE && a.locked > 0;
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
       <div
@@ -33,7 +34,7 @@ export function WalletModal({
         <div className="mt-1 text-xs text-ash">
           {a.mode === "demo"
             ? "Mode demo: saldo USDC testnet tiruan disimpan di browser."
-            : `Vault GameVault · ${shortAddress(a.address)}`}
+            : `Vault ${NATIVE_MODE ? "NativeGameVault" : "GameVault"} · ${shortAddress(a.address)}`}
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2">
@@ -66,8 +67,8 @@ export function WalletModal({
         {tab === "faucet" ? (
           <div className="mt-4">
             <p className="text-sm text-ash">
-              Klaim USDC testnet gratis{a.mode === "demo" ? ` (+${DEMO_FAUCET_AMOUNT} USDC)` : ""}. Di mode on-chain,
-              hasil faucet masuk ke wallet; lalu deposit ke Vault untuk bermain.
+              Klaim {ASSET_SYMBOL} testnet gratis{a.mode === "demo" ? ` (+${DEMO_FAUCET_AMOUNT} USDC)` : ""}. Di mode
+              on-chain, hasil faucet masuk ke wallet; lalu deposit ke Vault untuk bermain.
             </p>
             <button
               type="button"
@@ -81,7 +82,7 @@ export function WalletModal({
         ) : (
           <div className="mt-4">
             <label className="text-xs text-ash" htmlFor="amt">
-              Jumlah USDC
+              Jumlah {ASSET_SYMBOL}
             </label>
             <div className="mt-1 flex gap-2">
               <input
@@ -102,7 +103,9 @@ export function WalletModal({
               )}
             </div>
             {a.mode === "chain" && tab === "deposit" && (
-              <div className="mt-1 text-[11px] text-ash">Saldo wallet: {a.walletDisplay} USDC</div>
+              <div className="mt-1 text-[11px] text-ash">
+                Saldo wallet: {a.walletDisplay} {ASSET_SYMBOL}
+              </div>
             )}
             {tab === "withdraw" && withdrawBlocked && (
               <div className="mt-2 text-xs text-danger">Tarik diblokir selama kamu punya room aktif.</div>

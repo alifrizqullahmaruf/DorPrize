@@ -16,10 +16,23 @@ import { UsdcIcon } from "@/shared/ui/icons";
 import { WalletChip } from "@/features/wallet/components/TopBar";
 import { GameCanvas } from "@/features/game/components/GameCanvas";
 import { SkinPreview } from "@/features/game/three/SkinPreview";
+import { useRouter } from "next/navigation";
+import { ASSET_SYMBOL, NATIVE_MODE } from "@/shared/backend/native";
+import { NativeRoomGate } from "@/features/wallet/native/NativeRoomGate";
 
 export function RoomClient({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const roomId = id.toUpperCase();
+  return NATIVE_MODE ? (
+    <NativeRoomGate roomId={roomId}>
+      <JoinedRoom roomId={roomId} />
+    </NativeRoomGate>
+  ) : (
+    <JoinedRoom roomId={roomId} />
+  );
+}
+
+function JoinedRoom({ roomId }: { roomId: string }) {
   const hydrated = useProfile((s) => s.hydrated);
   const skin = useProfile((s) => s.skin);
   const join = useGame((s) => s.join);
@@ -54,7 +67,7 @@ export function RoomClient({ params }: { params: Promise<{ id: string }> }) {
     void join(roomId, p.name, p.skin);
     return () => {
       const locked = bidLocked.current;
-      if (locked) {
+      if (locked && !NATIVE_MODE) {
         if (!started.current) void tx.releaseBid(locked.roomId, locked.bid);
         else tx.forfeitBid(locked.bid, spent.current);
         bidLocked.current = null;
@@ -83,6 +96,7 @@ export function RoomClient({ params }: { params: Promise<{ id: string }> }) {
 }
 
 function Lobby({ roomId, onLocked }: { roomId: string; onLocked: (bid: number) => void }) {
+  const router = useRouter();
   const room = useGame((s) => s.room);
   const phase = useGame((s) => s.phase);
   const error = useGame((s) => s.error);
@@ -120,7 +134,7 @@ function Lobby({ roomId, onLocked }: { roomId: string; onLocked: (bid: number) =
   const url = `${window.location.origin}/room/${roomId}`;
   const me = room.players.find((p) => p.num === room.meNum);
   const ready = !!me?.ready;
-  const poor = BIDS_LOCKED && account.available < room.bid;
+  const poor = !NATIVE_MODE && BIDS_LOCKED && account.available < room.bid;
 
   const onReady = async () => {
     setJoinError("");
@@ -146,7 +160,28 @@ function Lobby({ roomId, onLocked }: { roomId: string; onLocked: (bid: number) =
     <div className="absolute inset-0 overflow-y-auto bg-black/55">
       <div className="mx-auto flex max-w-4xl flex-col gap-3 p-3 sm:p-5">
         <header className="flex flex-wrap items-start justify-between gap-2">
-          <Link href="/play" onClick={leave} className="btn-stone px-3 py-2 text-sm">
+          <Link
+            href="/play"
+            onClick={async (event) => {
+              if (!NATIVE_MODE) {
+                leave();
+                return;
+              }
+              event.preventDefault();
+              setBusy(true);
+              setJoinError("");
+              try {
+                await tx.releaseBid(roomId, room.bid);
+                leave();
+                router.push("/play");
+              } catch (caught) {
+                setJoinError(caught instanceof Error ? caught.message : "Gagal keluar room.");
+              } finally {
+                setBusy(false);
+              }
+            }}
+            className="btn-stone px-3 py-2 text-sm"
+          >
             ← KELUAR
           </Link>
           <WalletChip />
@@ -172,7 +207,9 @@ function Lobby({ roomId, onLocked }: { roomId: string; onLocked: (bid: number) =
               <UsdcIcon size={20} />
               {formatUsdc(room.pot)}
             </div>
-            <div className="text-xs text-ash">bid {formatUsdc(room.bid)} USDC / pemain</div>
+            <div className="text-xs text-ash">
+              bid {formatUsdc(room.bid)} {ASSET_SYMBOL} / pemain
+            </div>
           </div>
         </div>
 
@@ -263,7 +300,7 @@ function Lobby({ roomId, onLocked }: { roomId: string; onLocked: (bid: number) =
           {joinError && <div className="mb-2 text-center text-sm text-danger">{joinError}</div>}
           {poor && !ready && (
             <div className="mb-2 text-center text-xs text-ash">
-              Saldo tersedia {formatUsdc(account.available)} USDC — klik Faucet di kanan atas.
+              Saldo tersedia {formatUsdc(account.available)} {ASSET_SYMBOL} — klik Faucet di kanan atas.
             </div>
           )}
           <button
@@ -277,7 +314,9 @@ function Lobby({ roomId, onLocked }: { roomId: string; onLocked: (bid: number) =
               : busy
                 ? "MENGUNCI BID…"
                 : BIDS_LOCKED
-                  ? `JOIN & SIAP · kunci ${formatUsdc(room.bid)} USDC`
+                  ? NATIVE_MODE
+                    ? "SIAP"
+                    : `JOIN & SIAP · kunci ${formatUsdc(room.bid)} ${ASSET_SYMBOL}`
                   : "SIAP"}
           </button>
         </div>

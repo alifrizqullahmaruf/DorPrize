@@ -1,0 +1,25 @@
+{
+  "chainId": 10143,
+  "backend": "https://fastest-menus-daughters-lung.trycloudflare.com",
+  "vault": "0xebae4367eedcaefd839bac833ac10574ae094537",
+  "roomId": "TN6W5J",
+  "escrowRoomId": "0xda54fd4dfe450e26d6cd99c60dea421a5e4ac1b7797aa7b90e962956c1026ff4",
+  "settlementTxHash": "0x63fcd3af26529e71f8fd090a35949a76b716147abf4d3f29189047c7b68c56df",
+  "players": [
+    "0x7Ce2d04596C8Dc4593DE0b5E054808ee51A6F1fb",
+    "0x3de4D1d0DD2859b0fED6Dd81baf72a4A7903aDa6"
+  ],
+  "transactions": {
+    "fund-1": "0xb9b5c8d24db126d8b951449efd4bda787f5308a117e4e62717cf382d8bf9d6ec",
+    "fund-2": "0x61dd676882b43b95bb50ad4d606c13e1c7628691eaf52022600fcba0029bc871",
+    "deposit-1": "0x1bf32707f3994f7c8c8deb6e281742ae3537daa14547c2c7d699b8989b7ae468",
+    "deposit-2": "0x89e8c60edd785e517d57f7a543a2313541d621b5e58fdadf4432ad02f756e42e",
+    "join-1": "0xc68325690d4005d6661774f46da52ed7609ffb099a3985557593ab7ce22ddd5b",
+    "join-2": "0xd1a44e1850c02ea23bf7738f1d579a8b70f2d6a8bb0a6ce76e353e5e39e92616",
+    "withdraw-1": "0x9e3c822383baebe61f429e3849fa37ca45a13f3468060f9b56e519de4bdade16",
+    "return-1": "0x0fd91de134f72c8675359931c83b31aacf68a3ad9c54dec421ec127421c782f7",
+    "return-2": "0xe865f505eaa590d18ae43497df45352abd0f3e45a72731ff69174e16f34bea10"
+  },
+  "result": "passed",
+  "flow": "deposit -> SIWE -> signed ticket -> escrow -> Socket.io -> room start -> round -> settlement -> withdraw -> return test funds"
+}
