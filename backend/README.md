@@ -36,7 +36,7 @@ Socket.io events are defined in [shared/src/protocol.ts](../shared/src/protocol.
 
 ## How it works
 
-- **Identity:** the client sends `auth: { playerId, name }` in the handshake. `playerId` is a guest id from browser `localStorage`, to be replaced by the wallet address once SIWE is added.
+- **Identity:** with `ONCHAIN=1` the player id is the wallet address proven by a signed login message (see below). Without it, `playerId` is a guest id from browser `localStorage`.
 - **Reconnect:** seats belong to `playerId`, not to a socket. A reconnecting client re-sends `room:join` and gets the current `room:state` and phase again. While disconnected the player stays alive and the game keeps running; a game with nobody connected is dropped after `IDLE_GAME_TTL_MS`.
 - **Leaving:** `room:leave` frees the seat in the lobby; mid-game the player forfeits and their bid stays in the pot.
 - **Timing:** `round:submit` is accepted up to 1 s after the `deadline`, and `serverNow` lets clients correct clock skew.
