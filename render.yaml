@@ -1,0 +1,50 @@
+# Native testnet backend only. Frontend remains on Vercel; PostgreSQL remains on Supabase.
+# Fill secret values in Render. Never put passwords or private keys in this file.
+services:
+  - type: web
+    name: dorprize-native-backend
+    runtime: node
+    plan: free
+    region: singapore
+    branch: codex/native-backend
+    numInstances: 1
+    autoDeployTrigger: "off"
+    buildCommand: npm ci --include=dev
+    startCommand: npm run start -w @dorprize/backend
+    healthCheckPath: /ready
+    maxShutdownDelaySeconds: 120
+    buildFilter:
+      paths:
+        - backend/**
+        - shared/**
+        - sc/**
+        - package.json
+        - package-lock.json
+        - render.yaml
+    envVars:
+      - key: NODE_VERSION
+        value: "22.22.2"
+      - key: NODE_ENV
+        value: production
+      - key: SERVER_MODE
+        value: native
+      - key: CHAIN_ID
+        value: "10143"
+      - key: ALLOW_BOTS
+        value: "0"
+      - key: TIME_SCALE
+        value: "1"
+      - key: AUTH_ORIGIN
+        value: https://dorprize.vercel.app
+      - key: CORS_ORIGINS
+        value: https://dorprize.vercel.app
+      - key: MONAD_RPC_URL
+        sync: false
+      - key: NATIVE_GAME_VAULT_ADDRESS
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: OPERATOR_PRIVATE_KEY
+        sync: false
+      - key: BACKEND_SIGNER_PRIVATE_KEY
+        sync: false

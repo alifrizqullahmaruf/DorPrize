@@ -55,6 +55,11 @@ biaya skill. Contoh 10 MON / 3: 3.333333333333333334,
    pooler port 5432 atau direct connection yang dapat dijangkau host; backend
    membutuhkan koneksi tetap untuk advisory lock. API key browser dan URL
    project bukan pengganti connection string. Acuan: [panduan koneksi resmi](https://supabase.com/docs/guides/database/connecting-to-postgres).
+   Sertifikat CA publik resmi sudah tersedia di `backend/certs/`. Tambahkan
+   `sslmode=verify-full&sslrootcert=certs/supabase-prod-ca-2021.crt` pada query
+   connection string di Render (proses berjalan dari workspace backend).
+   Konfigurasi lokal dapat memakai path absolut; jangan menyalin path Windows
+   lokal ke Render. Password tetap URL-encoded dan disimpan sebagai secret.
 4. [Railway Dashboard](https://railway.com/dashboard): siapkan project dan service
    backend dari repo `alifrizqullahmaruf/DorPrize`. Pilih branch
    `codex/native-backend`, atau `main` setelah perubahan native direview dan
@@ -70,6 +75,20 @@ biaya skill. Contoh 10 MON / 3: 3.333333333333333334,
 
 Untuk demo testnet, Render Free mendukung Node.js dan WebSocket. Ini hanya
 usulan hosting; belum ada service dibuat atau akun yang dihubungkan.
+
+Repo menyediakan `render.yaml` untuk **New → Blueprint** agar konfigurasi
+backend otomatis terisi. Pilih branch `codex/native-backend`. File ini hanya
+berisi konfigurasi publik; lima nilai environment rahasia/hasil deployment
+diminta melalui Render. Jangan lanjutkan deploy native sebelum alamat kontrak
+dan signing secret tersedia. PORT diberikan Render secara otomatis.
+
+Auto-deploy sengaja off dan instance satu. Backend memegang advisory lock
+sepanjang proses hidup; Render biasanya menyalakan instance baru sebelum
+mematikan instance lama. Oleh karena itu rolling deploy/restart biasa bisa
+ditolak oleh lock. Rencanakan update pada waktu tidak ada match aktif, dengan
+proses lama benar-benar berhenti sebelum proses baru memakai database.
+Jangan menghapus lock atau mengaktifkan dua penulis agar deployment lolos.
+Deploy pertama dapat dilakukan ketika belum ada backend lain yang berjalan.
 
 1. Buka https://dashboard.render.com/ → New → Web Service → hubungkan repo
    DorPrize, pilih branch `codex/native-backend`, runtime Node dan plan Free.

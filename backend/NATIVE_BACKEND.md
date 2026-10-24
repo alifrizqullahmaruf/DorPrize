@@ -53,6 +53,14 @@ actual production database. A separate suite runs a real ephemeral PostgreSQL
 cluster and validates persistence, writer locking, RLS, browser-role denial and
 connection-loss recovery. The game end-to-end suite uses the durable file journal.
 
+For Supabase's private CA, use `sslmode=verify-full` and
+`sslrootcert=certs/supabase-prod-ca-2021.crt` query parameters in `DATABASE_URL`.
+The public CA and source/fingerprint are in `certs/`. This relative path works
+when launched through the backend workspace command; local checks from another
+directory can use an absolute URL-encoded path. Render must use its deployed
+relative path, not a developer's Windows path. Keep certificate and hostname
+verification enabled; do not disable TLS verification to fix a certificate error.
+
 Local: set `NATIVE_STATE_DIR=.native-state`, leave `DATABASE_URL` empty, and keep
 that directory on persistent storage. Its exclusive `writer.lock` prevents a
 second process. After a hard crash, verify the old process is stopped before
