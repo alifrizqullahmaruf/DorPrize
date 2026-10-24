@@ -1,0 +1,33 @@
+{
+  "name": "dorprize",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DOR PRIZE — blind-shot lava arena game on Monad testnet",
+  "workspaces": [
+    "frontend",
+    "backend",
+    "shared",
+    "sc"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @dorprize/frontend",
+    "dev:backend": "npm run dev -w @dorprize/backend",
+    "dev:all": "concurrently -n frontend,backend -c yellow,cyan \"npm run dev -w @dorprize/frontend\" \"npm run dev -w @dorprize/backend\"",
+    "build": "npm run build -w @dorprize/frontend",
+    "start": "npm run start -w @dorprize/frontend",
+    "lint": "npm run lint -w @dorprize/frontend",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test -w @dorprize/game-core && npm run test -w @dorprize/backend",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "sc:build": "npm run build -w @dorprize/contracts",
+    "sc:test": "npm run test -w @dorprize/contracts",
+    "sc:abi": "npm run abi -w @dorprize/contracts",
+    "sc:deploy": "npm run deploy:monad -w @dorprize/contracts"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.5",
+    "prettier": "^3.9.10",
+    "prettier-plugin-tailwindcss": "^0.6.14"
+  }
+}

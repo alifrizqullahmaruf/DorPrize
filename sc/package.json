@@ -1,0 +1,20 @@
+{
+  "name": "@dorprize/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DOR PRIZE smart contracts (Foundry): GameUSDC, USDCFaucet, GameVault, RoomManager.",
+  "type": "module",
+  "main": "./abi/index.ts",
+  "types": "./abi/index.ts",
+  "exports": {
+    ".": "./abi/index.ts"
+  },
+  "scripts": {
+    "build": "forge build",
+    "test": "forge test -vv",
+    "abi": "forge build && node scripts/export-abi.mjs",
+    "deploy:local": "forge script script/Deploy.s.sol --rpc-url http://127.0.0.1:8545 --broadcast",
+    "deploy:monad": "forge script script/Deploy.s.sol --rpc-url monad_testnet --broadcast --slow",
+    "fmt": "forge fmt"
+  }
+}

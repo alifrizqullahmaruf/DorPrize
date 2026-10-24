@@ -1,0 +1,8 @@
+# Normalise line endings in the repo; Prettier writes LF too.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.mp4 binary

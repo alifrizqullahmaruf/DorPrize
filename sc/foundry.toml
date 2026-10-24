@@ -1,0 +1,30 @@
+[profile.default]
+src = "src"
+out = "out"
+test = "test"
+script = "script"
+# Solidity libraries are git submodules in lib/ (forge install).
+libs = ["lib"]
+solc_version = "0.8.28"
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 200
+remappings = [
+    "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+    "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
+    "forge-std/=lib/forge-std/src/",
+]
+fs_permissions = [{ access = "read-write", path = "./deployments" }]
+
+[rpc_endpoints]
+monad_testnet = "${MONAD_RPC_URL}"
+local = "http://127.0.0.1:8545"
+
+# Sourcify / MonadVision-friendly build for verified deployments: FOUNDRY_PROFILE=monad_vision
+[profile.monad_vision]
+bytecode_hash = "none"
+cbor_metadata = true
+via_ir = true
+
+[fmt]
+line_length = 120

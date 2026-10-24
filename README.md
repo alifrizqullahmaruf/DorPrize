@@ -1,156 +1,88 @@
 # DOR PRIZE
 
-Game tembak "buta" di arena lava untuk 2–10 pemain, dibuat untuk **Monad Blitz #2**. Pemain terakhir yang bertahan mengambil seluruh pot USDC (testnet). Spesifikasi produk ada di [docs/PRD.md](docs/PRD.md).
+A blind-shot arena game for 2–10 players on a shrinking lava board, built for **Monad Blitz #2**. Players bet testnet USDC; the last one standing takes the pot. Product spec: [docs/PRD.md](docs/PRD.md).
 
-## Struktur repo
-
-Repo ini adalah monorepo **npm workspaces**:
+## Repository layout
 
 ```
 dorprize/
-├─ apps/
-│  ├─ server/                 Server game Node + Express + Socket.io (room, ronde, rahasia posisi)
-│  └─ web/                    Frontend Next.js 16 + React 19 + Three.js (React Three Fiber)
-│     ├─ public/              Aset statis (logo)
-│     └─ src/
-│        ├─ app/              Route: / (menu), /play (pilih room), /room/[id] (lobi + game)
-│        ├─ features/
-│        │  ├─ game/          Game: scene 3D, HUD, kontrol, state, jaringan (mock + Socket.io)
-│        │  ├─ room/          Pilih/buat room, scan QR, lobi
-│        │  ├─ menu/          Main menu
-│        │  └─ wallet/        Dompet demo, Reown/wagmi, Vault, profil pemain
-│        └─ shared/           Dipakai lintas fitur: UI, audio, hooks, klien backend, providers
-├─ packages/
-│  ├─ game-core/              Protokol Socket.io, aturan, geometri grid, engine ronde, RoomRunner
-│  │                          (siklus room), bot + unit test. Dipakai frontend (mock) dan server.
-│  └─ contracts/              Smart contract Foundry: GameUSDC, USDCFaucet, GameVault, RoomManager
-│                             (+ ABI TypeScript hasil generate untuk frontend/backend)
-└─ docs/                      PRD, rulebook, gambar referensi
+├─ frontend/   Next.js 16 + React 19 + React Three Fiber game, lobby and wallet UI
+├─ backend/    Node + Express + Socket.io game server (rooms, rounds, hidden positions)
+├─ sc/         Foundry smart contracts: GameUSDC, USDCFaucet, GameVault, RoomManager
+├─ shared/     @dorprize/game-core: rules, round engine, RoomRunner, Socket.io protocol
+└─ docs/       PRD and rulebook
 ```
 
-Aturan import:
+| Folder                         | Package               | Details                                       |
+| ------------------------------ | --------------------- | --------------------------------------------- |
+| [frontend](frontend/README.md) | `@dorprize/frontend`  | Game client, wallet (Reown + wagmi), Vault UI |
+| [backend](backend/README.md)   | `@dorprize/backend`   | Authoritative game server                     |
+| [sc](sc/README.md)             | `@dorprize/contracts` | Contracts + generated ABIs for the frontend   |
+| [shared](shared/README.md)     | `@dorprize/game-core` | Game logic used by both frontend and backend  |
 
-- Di dalam `apps/web`, gunakan alias `@/` (mengarah ke `apps/web/src`), misalnya `@/features/game/state/store`.
-- Semua yang menyangkut aturan atau protokol game diimpor dari `@dorprize/game-core`.
+The repo is an **npm workspaces** monorepo: one `npm install` at the root links every package. Game rules live only in `shared/` and are imported as `@dorprize/game-core`, so the browser mock and the real server always behave the same.
 
-## Menjalankan
+## Getting started
 
-Butuh Node.js 20.9+.
+Requires Node.js 20.9+ and, for contracts, [Foundry](https://getfoundry.sh).
 
 ```bash
-npm install                                   # dari root repo
-cp apps/web/.env.example apps/web/.env.local  # default: mode demo + mock server
-npm run dev                                   # http://localhost:3000
+git clone --recurse-submodules <repo-url>
+cd dorprize
+npm install
+cp frontend/.env.example frontend/.env.local   # demo mode by default
+npm run dev                                    # http://localhost:3000
 ```
 
-| Perintah                          | Fungsi                                        |
+Already cloned without submodules? Run `git submodule update --init --recursive`.
+
+| Command                           | What it does                                  |
 | --------------------------------- | --------------------------------------------- |
-| `npm run dev` / `build` / `start` | Menjalankan, build, atau serve aplikasi web   |
-| `npm run dev:server`              | Server game Socket.io (http://localhost:3001) |
-| `npm run dev:all`                 | Web + server game sekaligus                   |
-| `npm run lint`                    | ESLint aplikasi web                           |
-| `npm run typecheck`               | TypeScript di semua workspace                 |
-| `npm test`                        | Test game-core + server game                  |
+| `npm run dev` / `build` / `start` | Run, build or serve the frontend              |
+| `npm run dev:backend`             | Game server on http://localhost:3001          |
+| `npm run dev:all`                 | Frontend + game server together               |
+| `npm run lint`                    | ESLint (frontend)                             |
+| `npm run typecheck`               | TypeScript in every workspace                 |
+| `npm test`                        | Unit and integration tests (shared + backend) |
 | `npm run format` / `format:check` | Prettier                                      |
-| `npm run contracts:test`          | Test smart contract (Foundry)                 |
-| `npm run contracts:abi`           | Build kontrak + ekspor ABI/alamat ke frontend |
-| `npm run contracts:deploy`        | Deploy kontrak ke Monad testnet               |
+| `npm run sc:test`                 | Contract tests (Foundry)                      |
+| `npm run sc:abi`                  | Build contracts and export ABIs/addresses     |
+| `npm run sc:deploy`               | Deploy contracts to Monad testnet             |
 
-Secara bawaan game bisa dimainkan penuh **tanpa backend dan tanpa wallet**:
+## Run modes
 
-- `NEXT_PUBLIC_GAME_TRANSPORT=mock` menjalankan server tiruan di browser, lengkap dengan bot.
-- `NEXT_PUBLIC_DEMO_OFFLINE=1` menyimpan saldo USDC tiruan di browser. Tombol Faucet memberi +100.
+**Demo (default, no backend, no wallet).** `NEXT_PUBLIC_GAME_TRANSPORT=mock` runs the room server in the browser with bots, and `NEXT_PUBLIC_DEMO_OFFLINE=1` keeps a fake USDC balance in the browser. URL flags: `?fast=1`, `?slow=1`, `?bots=N` (e.g. `/room/TEST01?fast=1&bots=5`).
 
-Flag URL untuk testing di mode mock:
+**Local multiplayer.** In `frontend/.env.local` set `NEXT_PUBLIC_GAME_TRANSPORT=socket` and `NEXT_PUBLIC_BACKEND_API_URL=http://localhost:3001`, then `npm run dev:all`. Open two different browsers (guest ids are per browser), join the same room code and press Ready in both. For solo testing start the backend with `ALLOW_BOTS=1`.
 
-- `?fast=1` membuat semua fase 0,4× lebih cepat, `?slow=1` membuatnya 3× lebih lambat.
-- `?bots=N` mengatur jumlah bot.
-- Contoh: `/room/TEST01?fast=1&bots=5`. Kode room yang belum ada akan dibuat otomatis.
+**On-chain (Monad testnet).** Deploy the contracts ([sc/README.md](sc/README.md)), run `npm run sc:abi`, set `NEXT_PUBLIC_DEMO_OFFLINE=0` and `NEXT_PUBLIC_REOWN_PROJECT_ID`. The wallet layer is adapted from [PassChick](https://github.com/wngstnr-code/pass-chick). Server-side SIWE, join tickets and the settlement relayer are not built yet.
 
-## Multiplayer lokal (server Socket.io)
+## Deploying the frontend to Vercel
 
-Untuk bermain sungguhan antar-browser, jalankan server game di [apps/server](apps/server/README.md):
+1. Import the repo and set **Root Directory = `frontend`**. Keep the default build settings and leave "Include files outside the Root Directory" on (the workspaces install from the repo root).
+2. With no environment variables the game runs in demo mode.
+3. `NEXT_PUBLIC_*` values are baked in at build time: redeploy after changing them. The game server must be hosted elsewhere (Railway, Render, Fly.io) with the Vercel domain in its `CORS_ORIGINS`.
 
-1. Di `apps/web/.env.local` set `NEXT_PUBLIC_GAME_TRANSPORT=socket` dan `NEXT_PUBLIC_BACKEND_API_URL=http://localhost:3001`.
-2. `npm run dev:all` (web di :3000, server di :3001).
-3. Buka dua jendela browser yang berbeda (misalnya biasa + incognito), karena ID tamu disimpan per browser. Buat room di salah satunya, masuk dengan kode room yang sama di jendela lain, lalu keduanya tekan Ready.
+## Controls
 
-Ingin mencoba sendirian? Jalankan server dengan bot: salin `apps/server/.env.example` ke `apps/server/.env` lalu set `ALLOW_BOTS=1`.
+Over-the-shoulder camera while playing; isometric view in the lobby and when spectating.
 
-## Mode on-chain + backend asli
+- **Desktop:** click once to capture the mouse, then the mouse aims (snapped to 8 directions) and tilts the camera. **WASD / arrows** walk to any tile still standing. **F** holds fire, **1–4** buy skills, **Esc** releases the mouse, ⚙ sets sensitivity and sound. Moves lock automatically when the round timer ends.
+- **Mobile:** left joystick to walk, drag to aim.
 
-Isi `apps/web/.env.local`:
+## Rules that differ from the original PRD
 
-1. Isi `NEXT_PUBLIC_REOWN_PROJECT_ID` (dari cloud.reown.com), lalu set `NEXT_PUBLIC_DEMO_OFFLINE=0`.
-2. Deploy kontrak (lihat [packages/contracts/README.md](packages/contracts/README.md)) lalu jalankan `npm run contracts:abi`: frontend otomatis memakai alamat di `deployments/10143.json`. Variabel `NEXT_PUBLIC_*_ADDRESS` hanya perlu diisi untuk menimpa alamat itu.
-3. Set `NEXT_PUBLIC_GAME_TRANSPORT=socket` dan isi `NEXT_PUBLIC_BACKEND_API_URL`. Integrasi on-chain di server (SIWE, tiket `joinRoom`, relayer `startRoom`/`settleRoom`) belum dikerjakan; saat ini server memakai ID tamu.
+- Board size follows the player count: 2–3 → 8×8, 4–6 → 10×10, 7–10 → 12×12.
+- From round 2 the outer ring sinks at the start of each round, down to 2×2. Lava does not kill: players on a sinking ring are pushed inwards and mines on it are destroyed.
+- Everyone is revealed during the shootout and hidden again next round.
 
-Lapisan wallet ada di `apps/web/src/features/wallet/` dan diadaptasi dari [PassChick](https://github.com/wngstnr-code/pass-chick). Isinya Reown AppKit + wagmi 3, login SIWE dengan cookie, serta deposit, tarik, dan faucet ke GameVault.
+| Skill     | Cooldown | Rule                                                                      |
+| --------- | -------- | ------------------------------------------------------------------------- |
+| Mine      | 2        | Dropped on the tile you stand on when buying; explodes on an enemy there. |
+| Shotgun   | 3        | Fires three ways: straight and ±45°.                                      |
+| Shield    | 3        | No shooting this round; blocks shots from the direction you face.         |
+| Gold helm | 4        | Single use: absorbs one hit, then falls off.                              |
 
-## Deploy ke Vercel
+## Assets
 
-1. Import repo di Vercel dan set **Root Directory = `apps/web`**. Framework terdeteksi otomatis sebagai Next.js.
-2. Biarkan Build, Output, dan Install Command bawaan. Vercel menginstal npm workspaces dari root repo, dan opsi "Include files outside the Root Directory" harus tetap menyala.
-3. Environment Variables boleh kosong: game berjalan dalam mode demo (mock server + bot, dompet USDC tiruan di browser).
-4. Untuk mode sungguhan, isi env dari bagian di atas lalu **Redeploy**, karena `NEXT_PUBLIC_*` ditanam saat build. Backend Socket.io perlu di-host di luar Vercel (misalnya Railway, Render, atau Fly.io), dan domain Vercel harus diizinkan di CORS backend serta di dashboard Reown.
-
-## Kontrak dengan tim backend
-
-Semua event Socket.io didefinisikan di [packages/game-core/src/protocol.ts](packages/game-core/src/protocol.ts). Server ([apps/server](apps/server)) dan mock di browser ([mockTransport.ts](apps/web/src/features/game/net/mockTransport.ts)) sama-sama menjalankan `RoomRunner` dari `@dorprize/game-core`, jadi bentuk data dan waktunya identik.
-
-| Event                                                | Arah            | Catatan                                                                                                |
-| ---------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------ |
-| `room:join`, `room:skin`, `room:ready`, `room:leave` | client → server |                                                                                                        |
-| `round:submit`                                       | client → server | `{ moveTo, shootDir, skill, mineAt }`, dikirim otomatis saat waktu ronde habis                         |
-| `room:state`                                         | server → client | Tanpa posisi pemain                                                                                    |
-| `round:start`                                        | server → client | Hanya posisi, cooldown, dan ranjau milik penerima; `shrunkRing`, `pushed`                              |
-| `round:resolve`                                      | server → client | `revealed[]` berisi posisi semua pemain saat adu tembak. `shots[].paths[].from` adalah petak penembak. |
-| `game:end`                                           | server → client | Pemenang, payout, `skillFees`, `kills`                                                                 |
-
-Endpoint REST:
-
-- `GET /health` status server.
-- `GET /rooms` mengembalikan daftar room publik yang masih di lobi.
-- `POST /rooms` membuat room (`{ name, bid, maxPlayers, isPrivate }` → `{ roomId }`).
-- Belum ada: `POST /rooms/:id/ticket` mengembalikan `{ ticket }` untuk `joinRoom`.
-- `POST /api/game/submit-settlement` untuk klaim hadiah, mengikuti pola PassChick.
-
-Resolver ronde ada di [packages/game-core/src/engine.ts](packages/game-core/src/engine.ts).
-
-## Kontrol
-
-Selama bermain, kamera berada di belakang bahu karakter (gaya "shift lock" Roblox). Di lobi dan setelah tereliminasi, kamera kembali ke tampilan isometrik untuk menonton.
-
-**Desktop:**
-
-- **Klik sekali** ("KLIK UNTUK MAIN") untuk menyerahkan mouse ke game. Setelah itu gerakan mouse langsung memutar kamera tanpa drag: kiri-kanan untuk arah (di-snap 8 arah), atas-bawah untuk tinggi kamera. Sensitivitas bisa diatur lewat tombol ⚙.
-- **WASD / panah** untuk jalan bebas relatif kamera, ke petak mana saja yang masih ada.
-- Tidak ada tombol kunci. Posisi, arah, dan skill **terkunci otomatis saat waktu ronde habis**.
-- **F** untuk tidak menembak, **1–4** untuk skill, **Esc** untuk melepas mouse.
-
-**HP:** joystick di kiri untuk jalan, dan geser layar untuk memutar kamera/bidik.
-
-## Aturan yang berbeda dari PRD awal
-
-**Arena**
-
-- Ukuran papan mengikuti jumlah pemain: 2–3 pemain 8×8, 4–6 pemain 10×10, 7–10 pemain 12×12.
-- Di awal setiap ronde setelah ronde 1, cincin terluar tenggelam sampai tersisa 2×2.
-- Lava tidak membunuh. Pemain di cincin yang tenggelam didorong ke dalam, dan ranjau di cincin itu hancur.
-- Saat adu tembak, posisi semua pemain diungkap. Posisi disembunyikan lagi di ronde berikutnya, dan pemain yang tertembak hilang dari papan.
-
-**Skill**
-
-| Skill     | Cooldown | Aturan                                                                                                       |
-| --------- | -------- | ------------------------------------------------------------------------------------------------------------ |
-| Ranjau    | 2        | Dipasang di petak yang diinjak **saat membeli** (`mineAt`). Meledak bila lawan berakhir di petak itu.        |
-| Shotgun   | 3        | Tembak 3 arah: lurus dan ±45°.                                                                               |
-| Tameng    | 3        | Pemakai **tidak menembak**. `shootDir` hanya arah hadap yang dilindungi dari depan.                          |
-| Helm Emas | 4        | Sekali pakai: tetap terpasang sampai kena, menyerap 1 serangan, lalu jatuh. Bisa beli lagi setelah cooldown. |
-
-## Catatan aset
-
-Semua model dan tekstur voxel digambar dari kode, tanpa aset Minecraft. Efek suara disintesis dengan Web Audio. Video referensi gameplay Blind Shot (`docs/reference/*.mp4`) hanya disimpan lokal dan tidak masuk git karena ukurannya besar.
-
-# DorPrize
-# DorPrize
+All voxel models and textures are drawn in code (no Minecraft assets) and sound effects are synthesized with Web Audio. Reference media in `docs/reference/` is kept locally and not committed.

@@ -1,0 +1,16 @@
+node_modules
+.next
+out
+build
+coverage
+package-lock.json
+next-env.d.ts
+*.tsbuildinfo
+docs
+frontend/AGENTS.md
+sc/abi
+sc/out
+sc/cache
+sc/broadcast
+sc/deployments
+sc/lib

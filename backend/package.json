@@ -1,0 +1,28 @@
+{
+  "name": "@dorprize/backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DOR PRIZE game server: rooms, rounds and secrets over Socket.io.",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=.env src/index.ts",
+    "start": "tsx --env-file-if-exists=.env src/index.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@dorprize/game-core": "*",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/node": "^22.20.5",
+    "socket.io-client": "^4.8.3",
+    "tsx": "^4.20.6",
+    "typescript": "^5",
+    "vitest": "^5.0.5"
+  }
+}
