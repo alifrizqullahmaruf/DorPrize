@@ -14,7 +14,9 @@
     "@dorprize/game-core": "*",
     "cors": "^2.8.5",
     "express": "^5.1.0",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "@dorprize/contracts": "*",
+    "viem": "^2.57.7"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

@@ -17,7 +17,7 @@ import {
   type EngineState,
   type Rng,
 } from "./engine";
-import type { PlayerPublic, RoomState, RoomStatus, RoomSummary, RoundSubmit, ServerEvents } from "./protocol";
+import type { GameEnd, PlayerPublic, RoomState, RoomStatus, RoomSummary, RoundSubmit, ServerEvents } from "./protocol";
 import {
   DEFAULT_NAME,
   MAX_PLAYERS,
@@ -66,6 +66,10 @@ export type RoomRunnerOptions = {
   clearTimer?: (handle: TimerHandle) => void;
   /** Called when the last human left on purpose (the host may delete the room). */
   onEmpty?: (roomId: string) => void;
+  /** The countdown ended and the first round is starting (e.g. close the room on-chain). */
+  onStart?: (room: RoomRunner) => void;
+  /** The game finished (e.g. pay the pot on-chain). */
+  onEnd?: (room: RoomRunner, end: GameEnd) => void;
 };
 
 export type JoinResult = { ok: true; num: number } | { ok: false; error: string };
@@ -104,6 +108,8 @@ export class RoomRunner {
   private setTimer: (fn: () => void, ms: number) => TimerHandle;
   private clearTimer: (h: TimerHandle) => void;
   private onEmpty?: (roomId: string) => void;
+  private onStart?: (room: RoomRunner) => void;
+  private onEnd?: (room: RoomRunner, end: GameEnd) => void;
   private timers: TimerHandle[] = [];
   private actions: Record<number, RoundSubmit> = {};
   private lastResolve: ReturnType<typeof resolveRound> | null = null;
@@ -122,6 +128,8 @@ export class RoomRunner {
     this.setTimer = opts.setTimer ?? ((fn, ms) => setTimeout(fn, ms));
     this.clearTimer = opts.clearTimer ?? ((h) => clearTimeout(h));
     this.onEmpty = opts.onEmpty;
+    this.onStart = opts.onStart;
+    this.onEnd = opts.onEnd;
     this.createdAt = this.now();
   }
 
@@ -326,6 +334,7 @@ export class RoomRunner {
       this.bid,
       this.rng,
     );
+    this.onStart?.(this);
     this.nextRound();
   }
 
@@ -380,6 +389,7 @@ export class RoomRunner {
           this.status = "FINISHED";
           this.pushState();
           for (const seat of this.audience) this.sendEnd(seat);
+          this.onEnd?.(this, { ...result.state.end, roomId: this.roomId });
         } else {
           this.nextRound();
         }

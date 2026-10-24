@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { boardSizeFor, formatUsdc, MAX_PLAYERS, MIN_BID, MIN_PLAYERS } from "@dorprize/game-core";
 import type { RoomSummary } from "@dorprize/game-core";
-import { getTransport } from "@/features/game/net/transport";
+import { getRoomsApi } from "@/features/game/net/transport";
 import { useAccountView } from "@/features/wallet/account";
 import { useProfile } from "@/features/wallet/profile";
 import { WalletChip } from "@/features/wallet/components/TopBar";
@@ -64,7 +64,7 @@ function PublicRooms() {
 
   const load = useCallback(async () => {
     try {
-      const t = await getTransport();
+      const t = await getRoomsApi();
       setRooms(await t.listRooms());
       setError("");
     } catch (e) {
@@ -143,7 +143,7 @@ function CreateRoom() {
     if (bid < MIN_BID) return setError(`Bid minimal ${MIN_BID} USDC.`);
     setBusy(true);
     try {
-      const t = await getTransport();
+      const t = await getRoomsApi();
       const { roomId } = await t.createRoom({
         name: roomName.trim() || `Room ${name}`,
         bid,

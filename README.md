@@ -16,9 +16,15 @@ A blind-shot arena game for 2–10 players on a shrinking lava board, built for 
 
 All eight contracts are verified on MonadVision (Sourcify, exact match). Use the **proxy** addresses to interact.
 
-**Try it with a friend:** open the live URL in two browsers, connect a wallet on Monad testnet, claim test USDC from the **Faucet** and **Deposit** it into the vault (both are on-chain transactions), then one player creates a room and the other joins with the room code. Both press **SIAP** and the shootout starts.
+**Try it with a friend:**
 
-What runs on-chain today: faucet, vault deposit and withdraw. Locking bids in `RoomManager` and paying the pot on-chain need backend join tickets and a settlement relayer, which are next; until then the game itself is played through the game server.
+1. Open the live URL in two browsers and connect a wallet on Monad testnet.
+2. Claim test USDC from the **Faucet** and **Deposit** it into the vault.
+3. One player creates a room, the other joins with the room code. Each signs a free login message.
+4. **SIAP** locks the bid in `RoomManager` (`joinRoom`, backend-signed EIP-712 ticket).
+5. The game server calls `startRoom` when the countdown ends and `settleRoom` when the last player stands: the pot lands in the winner's vault balance and skill fees go to the treasury. The result screen links the payout transaction.
+
+Everything that moves money is on-chain: faucet, deposit, withdraw, bid lock, pot payout and skill fees. Positions and shots stay on the game server, so opponents can never read them from the chain.
 
 ## Repository layout
 
@@ -73,15 +79,15 @@ Already cloned without submodules? Run `git submodule update --init --recursive`
 
 **Local multiplayer.** In `frontend/.env.local` set `NEXT_PUBLIC_GAME_TRANSPORT=socket` and `NEXT_PUBLIC_BACKEND_API_URL=http://localhost:3001`, then `npm run dev:all`. Open two different browsers (guest ids are per browser), join the same room code and press Ready in both. For solo testing start the backend with `ALLOW_BOTS=1`.
 
-**On-chain (Monad testnet).** Deploy the contracts ([sc/README.md](sc/README.md)), run `npm run sc:abi`, set `NEXT_PUBLIC_DEMO_OFFLINE=0` and `NEXT_PUBLIC_REOWN_PROJECT_ID`. The wallet layer is adapted from [PassChick](https://github.com/wngstnr-code/pass-chick). `NEXT_PUBLIC_ONCHAIN_BIDS=1` additionally locks bids in `RoomManager`; it needs backend join tickets, which are not built yet, so keep it at `0`.
+**On-chain (Monad testnet).** Deploy the contracts ([sc/README.md](sc/README.md)), run `npm run sc:abi`, set `NEXT_PUBLIC_DEMO_OFFLINE=0` and `NEXT_PUBLIC_REOWN_PROJECT_ID`. The wallet layer is adapted from [PassChick](https://github.com/wngstnr-code/pass-chick). `NEXT_PUBLIC_ONCHAIN_BIDS=1` (with backend `ONCHAIN=1`) adds wallet login, locks bids in `RoomManager` and pays the pot on-chain.
 
 ### Hosting the live demo (game server on a laptop)
 
 The game server keeps open WebSocket connections, so it does not run on Vercel. For the demo it runs on a laptop behind a free Cloudflare tunnel ([install `cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)):
 
-1. In `backend/.env` set `CORS_ORIGINS=http://localhost:3000,https://dorprize.vercel.app`, then `npm run dev:backend`.
+1. In `backend/.env` set `CORS_ORIGINS=http://localhost:3000,https://dorprize.vercel.app` and `ONCHAIN=1`, then `npm run start:backend`. It asks for the password of the `deployer` keystore (the RoomManager backendSigner and relayer); use PowerShell so the password stays hidden.
 2. In a second terminal: `npm run tunnel` and copy the `https://….trycloudflare.com` URL it prints.
-3. In Vercel → Settings → Environment Variables set `NEXT_PUBLIC_GAME_TRANSPORT=socket`, `NEXT_PUBLIC_BACKEND_API_URL=<tunnel URL>`, `NEXT_PUBLIC_DEMO_OFFLINE=0`, `NEXT_PUBLIC_REOWN_PROJECT_ID=<id>`, then **Redeploy**.
+3. In Vercel → Settings → Environment Variables set `NEXT_PUBLIC_GAME_TRANSPORT=socket`, `NEXT_PUBLIC_BACKEND_API_URL=<tunnel URL>`, `NEXT_PUBLIC_DEMO_OFFLINE=0`, `NEXT_PUBLIC_ONCHAIN_BIDS=1`, `NEXT_PUBLIC_REOWN_PROJECT_ID=<id>`, then **Redeploy**.
 4. Keep both terminals running. A quick tunnel gets a new URL every time it restarts, which means repeating step 3.
 
 ## Deploying the frontend to Vercel

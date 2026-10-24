@@ -3,13 +3,45 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { sfx } from "@/shared/audio/sfx";
-import { backendPost } from "@/shared/backend/api";
+import { backendFetch } from "@/shared/backend/api";
 import { formatUsdc, MAX_ROUNDS } from "@dorprize/game-core";
 import { useGame } from "@/features/game/state/store";
 import { IS_DEMO } from "@/features/wallet/account";
-import { BIDS_LOCKED } from "@/features/wallet/joinRoom";
+import { BIDS_ON_CHAIN } from "@/features/wallet/joinRoom";
+import { explorerTxUrl } from "@/features/wallet/web3/monad";
 import { useProfile } from "@/features/wallet/profile";
 import { CrownIcon, TrophyIcon, UsdcIcon } from "@/shared/ui/icons";
+
+type Settlement =
+  | { status: "none" | "pending" }
+  | { status: "settled"; txHash: string }
+  | { status: "failed"; error: string; txHash?: string };
+
+/** The server pays the pot on-chain right after the game; follow it until it lands. */
+function useSettlement(roomId: string, enabled: boolean) {
+  const [s, setS] = useState<Settlement>({ status: "pending" });
+  useEffect(() => {
+    if (!enabled) return;
+    let stop = false;
+    let tries = 0;
+    const poll = async () => {
+      try {
+        const next = await backendFetch<Settlement>(`/rooms/${roomId}/settlement`);
+        if (stop) return;
+        setS(next);
+        if (next.status === "settled" || next.status === "failed") return;
+      } catch {
+        // keep polling
+      }
+      if (++tries < 40 && !stop) setTimeout(poll, 1500);
+    };
+    void poll();
+    return () => {
+      stop = true;
+    };
+  }, [roomId, enabled]);
+  return s;
+}
 
 function Confetti() {
   const coins = useMemo(() => {
@@ -59,8 +91,8 @@ export function ResultModal() {
   const payout = won ? end.payoutEach : 0;
   const net = payout - room.bid - fees;
   const done = useRef(false);
-  const [claim, setClaim] = useState<"" | "busy" | "ok" | "err">("");
-  const [claimMsg, setClaimMsg] = useState("");
+  const onChain = !IS_DEMO && BIDS_ON_CHAIN;
+  const settlement = useSettlement(room.roomId, onChain);
 
   useEffect(() => {
     if (done.current) return;
@@ -70,18 +102,6 @@ export function ResultModal() {
     if (won) sfx.win();
     else sfx.lose();
   }, [addStats, fees, kills, payout, room.bid, settleDemo, won]);
-
-  const onClaim = async () => {
-    setClaim("busy");
-    try {
-      await backendPost("/api/game/submit-settlement", { roomId: room.roomId });
-      setClaim("ok");
-      setClaimMsg("Settlement terkirim. Hadiah masuk saldo Vault.");
-    } catch (e) {
-      setClaim("err");
-      setClaimMsg(e instanceof Error ? e.message : "Gagal klaim.");
-    }
-  };
 
   const reasonText =
     end.reason === "mutual"
@@ -137,19 +157,28 @@ export function ResultModal() {
           {formatUsdc(net)} USDC
         </div>
 
-        {/* On-chain claim needs locked bids (backend settlement). */}
-        {!IS_DEMO && BIDS_LOCKED && won && (
-          <button
-            type="button"
-            onClick={onClaim}
-            disabled={claim === "busy" || claim === "ok"}
-            className="mt-3 w-full btn-gold py-2.5 text-base sm:mt-4 sm:py-3 sm:text-lg"
-          >
-            {claim === "busy" ? "MENGKLAIM…" : claim === "ok" ? "TERKLAIM ✓" : "KLAIM HADIAH"}
-          </button>
-        )}
-        {claimMsg && (
-          <div className={`mt-1.5 text-xs ${claim === "err" ? "text-danger" : "text-gold"}`}>{claimMsg}</div>
+        {onChain && (
+          <div className="mt-3 rounded-lg bg-white/5 p-2 text-xs sm:mt-4">
+            {settlement.status === "settled" ? (
+              <>
+                <div className="text-gold">✓ Pot dibayar on-chain ke saldo Vault.</div>
+                <a
+                  href={explorerTxUrl(settlement.txHash)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-1 inline-block font-mono text-[11px] text-stone underline"
+                >
+                  {settlement.txHash.slice(0, 10)}…{settlement.txHash.slice(-6)} ↗
+                </a>
+              </>
+            ) : settlement.status === "failed" ? (
+              <div className="text-danger">
+                Pembayaran on-chain gagal: {settlement.error}. Bid bisa di-refund lewat RoomManager setelah 1 jam.
+              </div>
+            ) : (
+              <div className="text-ash">Membayar pot on-chain…</div>
+            )}
+          </div>
         )}
 
         <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-4">

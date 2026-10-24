@@ -1,4 +1,5 @@
-import { RoomRunner, makeRoomId, type CreateRoomInput, type SendFn } from "@dorprize/game-core";
+import { RoomRunner, makeRoomId, type CreateRoomInput, type GameEnd, type SendFn } from "@dorprize/game-core";
+import type { ChainService } from "./chain";
 import type { ServerConfig } from "./config";
 
 /** All live rooms on this server (in memory). */
@@ -9,6 +10,7 @@ export class RoomRegistry {
     private config: ServerConfig,
     private send: SendFn,
     private now: () => number = Date.now,
+    private chain?: ChainService,
   ) {}
 
   create(input: CreateRoomInput): RoomRunner {
@@ -30,9 +32,27 @@ export class RoomRegistry {
         const r = this.rooms.get(id);
         if (r && r.status !== "LOBBY") this.remove(id);
       },
+      // On-chain bids: close the room when the game starts, pay the pot when it ends.
+      onStart: this.chain ? (room) => this.startOnChain(room) : undefined,
+      onEnd: this.chain ? (room, end) => this.settleOnChain(room, end) : undefined,
     });
     this.rooms.set(roomId, room);
     return room;
+  }
+
+  private startOnChain(room: RoomRunner) {
+    this.chain!.start(room.roomId).then(
+      (hash) => console.log(`startRoom ${room.roomId}: ${hash}`),
+      (e) => console.error(`startRoom ${room.roomId} failed:`, e),
+    );
+  }
+
+  private settleOnChain(room: RoomRunner, end: GameEnd) {
+    const addressOf = (num: number) => room.seats.find((s) => s.num === num && !s.isBot)?.id;
+    this.chain!.settle(room.roomId, end, addressOf).then(
+      () => console.log(`settleRoom ${room.roomId}: ${JSON.stringify(this.chain!.settlementOf(room.roomId))}`),
+      (e) => console.error(`settleRoom ${room.roomId} failed:`, e),
+    );
   }
 
   get(roomId: string) {

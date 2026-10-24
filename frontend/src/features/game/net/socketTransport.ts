@@ -3,6 +3,7 @@ import type { ClientEvents, CreateRoomInput, RoomSummary, ServerEvents } from "@
 import { backendFetch, backendPost } from "@/shared/backend/api";
 import { BACKEND_API_URL } from "@/shared/backend/config";
 import { getPlayerId } from "@/shared/lib/playerId";
+import { readLogin } from "@/shared/lib/walletLogin";
 import { useProfile } from "@/features/wallet/profile";
 import type { GameTransport, Unsubscribe } from "@/features/game/net/transport";
 
@@ -23,7 +24,8 @@ export class SocketTransport implements GameTransport {
     const socket = io(BACKEND_API_URL, {
       withCredentials: true,
       transports: ["websocket", "polling"],
-      auth: (cb) => cb({ playerId: getPlayerId(), name: useProfile.getState().name }),
+      // A signed wallet login (on-chain bids) wins over the guest id on the server.
+      auth: (cb) => cb({ playerId: getPlayerId(), name: useProfile.getState().name, login: readLogin() }),
     });
     await new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -45,6 +47,13 @@ export class SocketTransport implements GameTransport {
       if (this.lastJoin) socket.emit("room:join", this.lastJoin);
     });
     this.socket = socket;
+  }
+
+  /** Reconnect so the server sees a new handshake (e.g. after a wallet login). */
+  reauth() {
+    if (!this.socket) return;
+    this.socket.disconnect();
+    this.socket.connect();
   }
 
   on<E extends keyof ServerEvents>(event: E, cb: (payload: ServerEvents[E]) => void): Unsubscribe {

@@ -1,9 +1,10 @@
 "use client";
 
 import { keccak256, parseUnits, toHex, type Hex } from "viem";
-import { useWriteContract } from "wagmi";
-import { waitForTransactionReceipt } from "@wagmi/core";
-import { backendPost } from "@/shared/backend/api";
+import { useAccount, useWriteContract } from "wagmi";
+import { readContract, waitForTransactionReceipt } from "@wagmi/core";
+import { backendFetch } from "@/shared/backend/api";
+import { loginHeaders } from "@/shared/lib/walletLogin";
 import { wagmiAdapter } from "@/features/wallet/web3/appKit";
 import {
   ROOM_MANAGER_ABI,
@@ -19,7 +20,7 @@ import { useProfile } from "@/features/wallet/profile";
  * join tickets: players then play together while the wallet (faucet, deposit,
  * withdraw) still runs on-chain.
  */
-const BIDS_ON_CHAIN = process.env.NEXT_PUBLIC_ONCHAIN_BIDS === "1";
+export const BIDS_ON_CHAIN = process.env.NEXT_PUBLIC_ONCHAIN_BIDS === "1";
 
 /** Whether joining a room actually locks the bid (simulated balance in demo mode). */
 export const BIDS_LOCKED = IS_DEMO || BIDS_ON_CHAIN;
@@ -65,13 +66,27 @@ export function roomIdToBytes32(roomId: string): Hex {
 
 function useChainJoin(): JoinRoomTx {
   const { writeContractAsync } = useWriteContract();
+  const { address } = useAccount();
   return {
     lockBid: async (roomId, bid) => {
       // Bids off or contract not deployed yet: nothing to lock on-chain.
       if (!BIDS_ON_CHAIN || !hasRoomContractConfig()) return true;
+      // Already locked (e.g. pressing SIAP again after a network error).
+      if (address) {
+        const joined = await readContract(wagmiAdapter.wagmiConfig, {
+          address: ROOM_MANAGER_ADDRESS as Hex,
+          abi: ROOM_MANAGER_ABI,
+          functionName: "isInRoom",
+          args: [roomIdToBytes32(roomId), address],
+        });
+        if (joined) return true;
+      }
       // The backend checks room access (public / QR) and capacity, then signs an EIP-712
       // JoinTicket(roomId, player, bid, maxPlayers, deadline) for RoomManager.joinRoom.
-      const ticket = await backendPost<JoinTicket>(`/rooms/${roomId}/ticket`);
+      const ticket = await backendFetch<JoinTicket>(`/rooms/${roomId}/ticket`, {
+        method: "POST",
+        headers: loginHeaders(),
+      });
       const bidUnits = BigInt(ticket.bid);
       if (bidUnits !== parseUnits(String(bid), USDC_DECIMALS)) throw new Error("Bid room berubah. Muat ulang room.");
       const hash = await writeContractAsync({

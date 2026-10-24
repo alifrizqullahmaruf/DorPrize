@@ -8,6 +8,7 @@
  * - skins:    skin ids and palettes
  * - bots:     simple bot player (mock + server test rooms)
  * - room:     RoomRunner — one room's full lifecycle (browser mock + server)
+ * - auth:     wallet login message (frontend signs, backend verifies)
  */
 export * from "./engine";
 export * from "./geometry";
@@ -16,3 +17,4 @@ export * from "./rules";
 export * from "./skins";
 export * from "./bots";
 export * from "./room";
+export * from "./auth";

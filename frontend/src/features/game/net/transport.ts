@@ -1,4 +1,5 @@
 import type { ClientEvents, CreateRoomInput, RoomSummary, ServerEvents } from "@dorprize/game-core";
+import { backendFetch, backendPost } from "@/shared/backend/api";
 
 export type Unsubscribe = () => void;
 
@@ -8,6 +9,22 @@ export interface GameTransport {
   emit<E extends keyof ClientEvents>(event: E, payload: ClientEvents[E]): void;
   listRooms(): Promise<RoomSummary[]>;
   createRoom(input: CreateRoomInput): Promise<{ roomId: string }>;
+  /** Re-send the handshake (new wallet login). */
+  reauth?(): void;
+}
+
+type RoomsApi = Pick<GameTransport, "listRooms" | "createRoom">;
+
+/**
+ * Listing and creating rooms. With the real server these are plain REST calls,
+ * so browsing rooms does not need a (wallet-authenticated) socket yet.
+ */
+export async function getRoomsApi(): Promise<RoomsApi> {
+  if (TRANSPORT_KIND !== "socket") return getTransport();
+  return {
+    listRooms: () => backendFetch<RoomSummary[]>("/rooms"),
+    createRoom: (input) => backendPost<{ roomId: string }>("/rooms", input),
+  };
 }
 
 export const TRANSPORT_KIND: "mock" | "socket" =

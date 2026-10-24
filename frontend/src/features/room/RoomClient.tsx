@@ -4,11 +4,14 @@ import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { use, useEffect, useRef, useState } from "react";
 import { sfx } from "@/shared/audio/sfx";
-import { formatUsdc, SKINS } from "@dorprize/game-core";
+import { formatUsdc, loginMessage, SKINS } from "@dorprize/game-core";
+import { useSignMessage } from "wagmi";
 import { useDeathShown, useGame } from "@/features/game/state/store";
 import { secondsUntil, useNow } from "@/shared/hooks/useNow";
-import { useAccountView } from "@/features/wallet/account";
-import { BIDS_LOCKED, useJoinRoomTx } from "@/features/wallet/joinRoom";
+import { IS_DEMO, useAccountView } from "@/features/wallet/account";
+import { BIDS_LOCKED, BIDS_ON_CHAIN, useJoinRoomTx } from "@/features/wallet/joinRoom";
+import { readLogin, saveLogin } from "@/shared/lib/walletLogin";
+import { getTransport } from "@/features/game/net/transport";
 import { useProfile } from "@/features/wallet/profile";
 import { GameHud } from "@/features/game/hud/GameHud";
 import { Controls } from "@/features/game/components/Controls";
@@ -28,6 +31,9 @@ export function RoomClient({ params }: { params: Promise<{ id: string }> }) {
   const tx = useJoinRoomTx();
   const end = useGame((s) => s.end);
   const bidLocked = useRef<{ roomId: string; bid: number } | null>(null);
+  // On-chain bids: the server only seats players who signed in with their wallet.
+  const [loggedIn, setLoggedIn] = useState(!WALLET_LOGIN);
+  const canJoin = hydrated && loggedIn;
   const started = useRef(false);
   const spent = useRef(0);
 
@@ -47,7 +53,7 @@ export function RoomClient({ params }: { params: Promise<{ id: string }> }) {
 
   // Join on mount, leave on unmount (also when Next hides this page).
   useEffect(() => {
-    if (!hydrated) return;
+    if (!canJoin) return;
     const p = useProfile.getState();
     started.current = false;
     spent.current = 0;
@@ -63,7 +69,7 @@ export function RoomClient({ params }: { params: Promise<{ id: string }> }) {
     };
     // name/skin changes are sent separately; don't rejoin for them
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, roomId, join]);
+  }, [canJoin, roomId, join]);
 
   useEffect(() => {
     useGame.getState().setSkin(skin);
@@ -77,8 +83,73 @@ export function RoomClient({ params }: { params: Promise<{ id: string }> }) {
         <GameCanvas />
       </div>
       {inGame && !deathShown && phase !== "finished" && <Controls />}
-      {inGame ? <GameHud /> : <Lobby roomId={roomId} onLocked={(bid) => (bidLocked.current = { roomId, bid })} />}
+      {!loggedIn ? (
+        <WalletLogin onDone={() => setLoggedIn(true)} />
+      ) : inGame ? (
+        <GameHud />
+      ) : (
+        <Lobby roomId={roomId} onLocked={(bid) => (bidLocked.current = { roomId, bid })} />
+      )}
     </main>
+  );
+}
+
+/** Real wallet + on-chain bids: sign one message so the server knows the address is yours. */
+const WALLET_LOGIN = BIDS_ON_CHAIN && !IS_DEMO;
+
+function WalletLogin({ onDone }: { onDone: () => void }) {
+  const account = useAccountView();
+  const { signMessageAsync } = useSignMessage();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  // Already signed in this browser with this wallet: skip the prompt.
+  useEffect(() => {
+    if (account.connected && readLogin(account.address)) onDone();
+  }, [account.connected, account.address, onDone]);
+
+  const signIn = async () => {
+    setError("");
+    setBusy(true);
+    try {
+      if (!account.connected) {
+        await account.connect();
+        return;
+      }
+      const issuedAt = Date.now();
+      const address = account.address;
+      const signature = await signMessageAsync({ message: loginMessage(address, issuedAt) });
+      saveLogin({ address, issuedAt, signature });
+      // A socket opened before the login must re-handshake as this wallet.
+      void getTransport().then(
+        (t) => t.reauth?.(),
+        () => {},
+      );
+      onDone();
+    } catch (e) {
+      setError(e instanceof Error ? e.message.split("\n")[0] : "Gagal tanda tangan.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="absolute inset-0 flex items-center justify-center bg-black/60 p-4">
+      <div className="flex w-full max-w-sm flex-col gap-3 panel p-5 text-center">
+        <div className="font-pixel text-lg text-gold">MASUK DENGAN WALLET</div>
+        <p className="text-sm text-ash">
+          Bid dikunci di kontrak RoomManager dan hadiah dibayar otomatis ke saldo Vault. Tanda tangan pesan ini gratis
+          (tanpa gas) dan berlaku 24 jam.
+        </p>
+        {error && <div className="text-sm text-danger">{error}</div>}
+        <button type="button" onClick={signIn} disabled={busy} className="btn-gold py-3 text-lg">
+          {busy ? "MENUNGGU WALLET…" : account.connected ? "TANDA TANGAN & MASUK" : "HUBUNGKAN WALLET"}
+        </button>
+        <Link href="/play" className="btn-stone py-2 text-sm">
+          ← Kembali
+        </Link>
+      </div>
+    </div>
   );
 }
 

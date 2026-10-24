@@ -44,4 +44,11 @@ Socket.io events are defined in [shared/src/protocol.ts](../shared/src/protocol.
 - **Untrusted input:** payloads are shape-checked in [src/validate.ts](src/validate.ts) before reaching the engine, which re-checks the game rules.
 - **Storage:** in memory. Empty lobbies are dropped after 10 minutes; a game every player walked out of is dropped right away.
 
-Not built yet: SIWE, `joinRoom` tickets, the `startRoom` / `settleRoom` relayer and persistent storage.
+## On-chain bids (`ONCHAIN=1`)
+
+- **Wallet login:** the client signs a plain message (`loginMessage` in [shared/src/auth.ts](../shared/src/auth.ts)) and sends it in the handshake and the `x-dorprize-login` header. The verified address becomes the player id; guests are rejected. No cookies, so it works across domains.
+- **`POST /rooms/:id/ticket`:** EIP-712 `JoinTicket` for a player seated in the lobby. `room:ready` is only accepted once `RoomManager.isInRoom` is true.
+- **`startRoom` / `settleRoom`:** sent by the server when the countdown ends and when the game finishes ([src/chain.ts](src/chain.ts)). `GET /rooms/:id/settlement` reports the payout and its transaction hash.
+- **Server key:** read from a Foundry keystore (`SIGNER_KEYSTORE`, default `~/.foundry/keystores/deployer`). The password is typed at start (`npm run start:backend`), never stored. The key must be RoomManager's `backendSigner` and `operator` and hold MON for gas.
+
+Not built yet: persistent storage (rooms and pending payouts live in memory).

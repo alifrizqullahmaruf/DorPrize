@@ -13,6 +13,11 @@ export type ServerConfig = {
   idleGameTtlMs: number;
   /** How often stale rooms are swept. */
   sweepIntervalMs: number;
+  /** On-chain bids: players log in with their wallet and bids are locked in RoomManager. */
+  onchain: boolean;
+  /** Foundry keystore of the server key (RoomManager backendSigner + operator). */
+  signerKeystore: string;
+  rpcUrl: string;
 };
 
 function num(value: string | undefined, fallback: number) {
@@ -34,5 +39,8 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     idleLobbyTtlMs: num(env.IDLE_LOBBY_TTL_MS, 10 * 60_000),
     idleGameTtlMs: num(env.IDLE_GAME_TTL_MS, 2 * 60_000),
     sweepIntervalMs: num(env.SWEEP_INTERVAL_MS, 60_000),
+    onchain: env.ONCHAIN === "1" || env.ONCHAIN === "true",
+    signerKeystore: env.SIGNER_KEYSTORE ?? "",
+    rpcUrl: env.MONAD_RPC_URL || "https://testnet-rpc.monad.xyz",
   };
 }

@@ -3,7 +3,8 @@ import type { AddressInfo } from "node:net";
 import cors from "cors";
 import express from "express";
 import { Server, type Socket } from "socket.io";
-import type { ClientEvents, ServerEvents } from "@dorprize/game-core";
+import { LOGIN_HEADER, type ClientEvents, type ServerEvents } from "@dorprize/game-core";
+import { verifyLogin, type ChainService } from "./chain";
 import type { ServerConfig } from "./config";
 import { RoomRegistry } from "./registry";
 import { parseCreateRoom, parseJoin, parseName, parsePlayerId, parseSubmit } from "./validate";
@@ -28,7 +29,21 @@ export type GameServer = {
   close: () => Promise<void>;
 };
 
-export function createGameServer(config: ServerConfig): GameServer {
+/** WalletLogin from the `x-dorprize-login` header (base64 JSON). */
+function loginFromHeader(value: string | undefined): unknown {
+  if (!value) return null;
+  try {
+    return JSON.parse(Buffer.from(value, "base64").toString("utf8"));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * @param chain On-chain bids (RoomManager). Without it, players use guest ids and
+ *              bids are not locked.
+ */
+export function createGameServer(config: ServerConfig, chain?: ChainService): GameServer {
   const app = express();
   app.use(cors({ origin: config.corsOrigins, credentials: true }));
   app.use(express.json({ limit: "16kb" }));
@@ -39,10 +54,15 @@ export function createGameServer(config: ServerConfig): GameServer {
     maxHttpBufferSize: 16_000,
   });
 
-  const registry = new RoomRegistry(config, (playerId, event, payload) => {
-    // Each player only receives what is addressed to them (their own secrets).
-    io.to(playerChannel(playerId)).emit(event, ...([payload] as Parameters<ServerHandlers[typeof event]>));
-  });
+  const registry = new RoomRegistry(
+    config,
+    (playerId, event, payload) => {
+      // Each player only receives what is addressed to them (their own secrets).
+      io.to(playerChannel(playerId)).emit(event, ...([payload] as Parameters<ServerHandlers[typeof event]>));
+    },
+    Date.now,
+    chain,
+  );
 
   // ---------------------------------------------------------------- REST
 
@@ -63,12 +83,37 @@ export function createGameServer(config: ServerConfig): GameServer {
     res.status(201).json({ roomId: registry.create(input).roomId });
   });
 
+  // Signed JoinTicket for RoomManager.joinRoom, only for a player seated in the lobby.
+  app.post("/rooms/:id/ticket", async (req, res) => {
+    if (!chain) return void res.status(404).json({ error: "On-chain bids are off." });
+    const player = await verifyLogin(loginFromHeader(req.get(LOGIN_HEADER)));
+    if (!player) return void res.status(401).json({ error: "Login wallet dulu." });
+    const room = registry.get(String(req.params.id).toUpperCase());
+    if (!room) return void res.status(404).json({ error: "Room tidak ditemukan." });
+    if (!room.seatOf(player)) return void res.status(403).json({ error: "Masuk ke room dulu." });
+    if (room.status !== "LOBBY") return void res.status(409).json({ error: "Game di room ini sudah dimulai." });
+    try {
+      res.json(await chain.ticket(room.roomId, player, room.bid, room.maxPlayers));
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "Gagal membuat tiket." });
+    }
+  });
+
+  // Status of the automatic on-chain payout for a finished room.
+  app.get("/rooms/:id/settlement", (req, res) => {
+    const status = chain?.settlementOf(String(req.params.id).toUpperCase());
+    res.json(status ?? { status: "none" });
+  });
+
   // ---------------------------------------------------------------- Socket.io
 
-  // Identify the player before anything else. Guest ids for now; SIWE later.
-  io.use((socket, next) => {
+  // Identify the player before anything else: a signed wallet login (required with
+  // on-chain bids, the address is the player id) or a guest id.
+  io.use(async (socket, next) => {
     const auth = socket.handshake.auth as Record<string, unknown>;
-    const playerId = parsePlayerId(auth?.playerId);
+    const wallet = auth?.login ? await verifyLogin(auth.login) : null;
+    if (chain && !wallet) return next(new Error("wallet login required"));
+    const playerId = wallet ?? parsePlayerId(auth?.playerId);
     if (!playerId) return next(new Error("invalid playerId"));
     socket.data.playerId = playerId;
     socket.data.name = parseName(auth?.name);
@@ -101,9 +146,29 @@ export function createGameServer(config: ServerConfig): GameServer {
       if (typeof skin === "string") currentRoom()?.setSkin(playerId, skin);
     });
 
-    socket.on("room:ready", (payload: unknown) => {
-      currentRoom()?.setReady(playerId, (payload as { ready?: unknown })?.ready === true);
+    socket.on("room:ready", async (payload: unknown) => {
+      const room = currentRoom();
+      const ready = (payload as { ready?: unknown })?.ready === true;
+      if (!room) return;
+      // On-chain bids: ready only once the bid is actually locked in RoomManager.
+      if (chain && ready && !(await lockedOnChain(room.roomId))) {
+        return fail("Bid belum terkunci on-chain. Coba SIAP lagi.");
+      }
+      room.setReady(playerId, ready);
     });
+
+    /** The joinRoom tx was just mined; give the RPC a moment to catch up. */
+    async function lockedOnChain(roomId: string) {
+      for (let i = 0; i < 4; i++) {
+        try {
+          if (await chain!.isInRoom(roomId, playerId)) return true;
+        } catch {
+          // RPC hiccup: retry
+        }
+        await new Promise((r) => setTimeout(r, 800));
+      }
+      return false;
+    }
 
     socket.on("room:leave", () => {
       currentRoom()?.leave(playerId);
