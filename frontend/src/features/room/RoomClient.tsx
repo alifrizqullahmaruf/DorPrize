@@ -8,7 +8,7 @@ import { formatUsdc, SKINS } from "@dorprize/game-core";
 import { useDeathShown, useGame } from "@/features/game/state/store";
 import { secondsUntil, useNow } from "@/shared/hooks/useNow";
 import { useAccountView } from "@/features/wallet/account";
-import { useJoinRoomTx } from "@/features/wallet/joinRoom";
+import { BIDS_LOCKED, useJoinRoomTx } from "@/features/wallet/joinRoom";
 import { useProfile } from "@/features/wallet/profile";
 import { GameHud } from "@/features/game/hud/GameHud";
 import { Controls } from "@/features/game/components/Controls";
@@ -120,7 +120,7 @@ function Lobby({ roomId, onLocked }: { roomId: string; onLocked: (bid: number) =
   const url = `${window.location.origin}/room/${roomId}`;
   const me = room.players.find((p) => p.num === room.meNum);
   const ready = !!me?.ready;
-  const poor = account.available < room.bid;
+  const poor = BIDS_LOCKED && account.available < room.bid;
 
   const onReady = async () => {
     setJoinError("");
@@ -183,7 +183,7 @@ function Lobby({ roomId, onLocked }: { roomId: string; onLocked: (bid: number) =
               {secs}
             </div>
             <div className="text-xs text-ash">
-              Bid terkunci. Lawan hanya terlihat saat adu tembak — percayai firasatmu.
+              {BIDS_LOCKED && "Bid terkunci. "}Lawan hanya terlihat saat adu tembak — percayai firasatmu.
             </div>
           </div>
         )}
@@ -276,7 +276,9 @@ function Lobby({ roomId, onLocked }: { roomId: string; onLocked: (bid: number) =
               ? "SIAP ✓ — MENUNGGU MULAI"
               : busy
                 ? "MENGUNCI BID…"
-                : `JOIN & SIAP · kunci ${formatUsdc(room.bid)} USDC`}
+                : BIDS_LOCKED
+                  ? `JOIN & SIAP · kunci ${formatUsdc(room.bid)} USDC`
+                  : "SIAP"}
           </button>
         </div>
       </div>

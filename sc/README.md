@@ -16,12 +16,13 @@ joinRoom   (backend EIP-712 ticket)   -> Open      bid locked in the vault
 leaveRoom                             -> Open      bid returned (before start only)
 startRoom  (operator / relayer)       -> Started   nobody can leave any more
 settleRoom (anyone + backend sig)     -> Settled   pot split between winners, skill fees to treasury
-refundRoom (anyone, after delay)      -> Refunded  every bid returned
+refundRoom (anyone, after delay)      -> Refunded  every bid returned (delay counted from the start)
 ```
 
 - The **first player** sets the room's `bid` and `maxPlayers` (2–10, min. 1 USDC); later players must match them.
 - Split-pot dust goes to the treasury. Skill fees are charged from the available balance, capped at what is there, so a settlement can never get stuck.
-- A room can be settled or refunded **only once**.
+- A room can be settled or refunded **only once**. Afterwards the same room code can be opened again: state is stored per (roomId, generation).
+- `refundRoom` opens `refundDelay` after the start for a started game (after creation for a lobby), so a long lobby cannot cut a game short.
 
 ## Backend signatures (EIP-712)
 
@@ -68,22 +69,23 @@ Inside `sc/` plain Foundry works too: `forge build`, `forge test`, `forge fmt`.
 
 ## Deploying to Monad testnet
 
-1. `cp .env.example .env` and set `PRIVATE_KEY` (deployer with testnet MON). Optional: `BACKEND_SIGNER`, `OPERATOR`, `INITIAL_OWNER` (default: the deployer), `REFUND_DELAY`.
-2. Deploy:
+The deployer key never sits in a file or gets pasted anywhere: it lives in an encrypted Foundry keystore.
+
+1. Use a fresh burner wallet and fund it with testnet MON from [faucet.monad.xyz](https://faucet.monad.xyz).
+2. Import it once (prompts for the key and a password):
+   ```bash
+   cast wallet import deployer --interactive
+   ```
+3. Optional: `cp .env.example .env` to set `BACKEND_SIGNER`, `OPERATOR`, `INITIAL_OWNER` (default: the deployer) or `REFUND_DELAY`.
+4. Deploy and verify:
    ```bash
    cd sc
-   set -a && source .env && set +a
-   npm run deploy:monad
+   npm run deploy:monad    # forge script … --account deployer (asks for the keystore password)
+   npm run verify:monad    # every implementation + proxy on MonadVision (Sourcify)
    ```
    The script deploys every proxy, lets the faucet mint, points the vault at `RoomManager` and writes the addresses to `deployments/10143.json`.
-3. Run `npm run sc:abi` from the root so the frontend picks up the addresses, then commit `deployments/10143.json` and `abi/`.
-4. The `OPERATOR` relayer needs MON to call `startRoom` and `settleRoom`.
+5. Run `npm run sc:abi` from the root so the frontend picks up the addresses, then commit `deployments/10143.json` and `abi/`.
 
-Verify on MonadVision (Sourcify):
-
-```bash
-FOUNDRY_PROFILE=monad_vision forge verify-contract <address> <ContractName> \
-  --chain 10143 --verifier sourcify --verifier-url https://sourcify-api-monad.blockvision.org/
-```
+The `OPERATOR` relayer needs MON to call `startRoom` and `settleRoom` once on-chain bids are enabled.
 
 Local test without a real wallet: run `anvil`, then `npm run deploy:local -w @dorprize/contracts` (uses anvil's dev account; chain 31337 only).

@@ -7,6 +7,7 @@ import { backendPost } from "@/shared/backend/api";
 import { formatUsdc, MAX_ROUNDS } from "@dorprize/game-core";
 import { useGame } from "@/features/game/state/store";
 import { IS_DEMO } from "@/features/wallet/account";
+import { BIDS_LOCKED } from "@/features/wallet/joinRoom";
 import { useProfile } from "@/features/wallet/profile";
 import { CrownIcon, TrophyIcon, UsdcIcon } from "@/shared/ui/icons";
 
@@ -136,7 +137,8 @@ export function ResultModal() {
           {formatUsdc(net)} USDC
         </div>
 
-        {!IS_DEMO && won && (
+        {/* On-chain claim needs locked bids (backend settlement). */}
+        {!IS_DEMO && BIDS_LOCKED && won && (
           <button
             type="button"
             onClick={onClaim}

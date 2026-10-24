@@ -11,8 +11,12 @@ import {RoomManager} from "../src/RoomManager.sol";
 /// @notice Deploys GameUSDC, USDCFaucet, GameVault and RoomManager behind UUPS proxies,
 ///         wires their roles and writes the proxy addresses to deployments/<chainId>.json.
 ///
-/// Env: PRIVATE_KEY (required except on a local anvil chain), INITIAL_OWNER, BACKEND_SIGNER,
-///      OPERATOR (all default to the deployer), USDC_FAUCET_CLAIM_AMOUNT, REFUND_DELAY.
+/// Signing: pass an encrypted keystore account (`--account deployer --sender <address>`, set up
+/// once with `cast wallet import deployer --interactive`). No private key is read from a file.
+/// On a local anvil chain (31337) the well-known dev account is used instead.
+///
+/// Env: INITIAL_OWNER, BACKEND_SIGNER, OPERATOR (all default to the deployer),
+///      USDC_FAUCET_CLAIM_AMOUNT, REFUND_DELAY.
 contract Deploy is Script {
     uint256 internal constant DEFAULT_CLAIM_AMOUNT = 100 * 1e6;
     uint64 internal constant DEFAULT_REFUND_DELAY = 1 hours;
@@ -27,19 +31,18 @@ contract Deploy is Script {
     }
 
     function run() external returns (Deployment memory d) {
-        uint256 key = vm.envOr("PRIVATE_KEY", uint256(0));
-        if (key == 0) {
-            require(block.chainid == 31337, "PRIVATE_KEY is required outside a local anvil chain");
-            key = ANVIL_KEY;
-        }
-        address deployer = vm.addr(key);
+        bool local = block.chainid == 31337;
+        // With --account/--sender, msg.sender is the keystore account that will sign.
+        address deployer = local ? vm.addr(ANVIL_KEY) : msg.sender;
+        require(deployer != DEFAULT_SENDER, "Pass --account <keystore name> (cast wallet import)");
         address owner = vm.envOr("INITIAL_OWNER", deployer);
         address signer = vm.envOr("BACKEND_SIGNER", deployer);
         address operator = vm.envOr("OPERATOR", deployer);
         uint256 claimAmount = vm.envOr("USDC_FAUCET_CLAIM_AMOUNT", DEFAULT_CLAIM_AMOUNT);
         uint64 refundDelay = uint64(vm.envOr("REFUND_DELAY", uint256(DEFAULT_REFUND_DELAY)));
 
-        vm.startBroadcast(key);
+        if (local) vm.startBroadcast(ANVIL_KEY);
+        else vm.startBroadcast(deployer);
 
         // The deployer owns everything until wiring is done, then ownership moves to `owner`.
         GameUSDC token = GameUSDC(_proxy(address(new GameUSDC()), abi.encodeCall(GameUSDC.initialize, (deployer))));

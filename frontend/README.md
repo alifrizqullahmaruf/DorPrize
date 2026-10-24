@@ -24,13 +24,14 @@ Use the `@/` alias for imports inside this app (e.g. `@/features/game/state/stor
 
 ## Environment
 
-| Variable                       | Purpose                                                               |
-| ------------------------------ | --------------------------------------------------------------------- |
-| `NEXT_PUBLIC_GAME_TRANSPORT`   | `mock` (in-browser server + bots) or `socket` (the backend)           |
-| `NEXT_PUBLIC_DEMO_OFFLINE`     | `1` = fake USDC balance in the browser; `0` = real wallet + contracts |
-| `NEXT_PUBLIC_BACKEND_API_URL`  | Game server URL in socket mode, e.g. `http://localhost:3001`          |
-| `NEXT_PUBLIC_REOWN_PROJECT_ID` | Reown (WalletConnect) project id                                      |
-| `NEXT_PUBLIC_MONAD_*`          | Chain settings (defaults: Monad testnet)                              |
-| `NEXT_PUBLIC_*_ADDRESS`        | Optional overrides; by default addresses come from `sc/deployments`   |
+| Variable                       | Purpose                                                                  |
+| ------------------------------ | ------------------------------------------------------------------------ |
+| `NEXT_PUBLIC_GAME_TRANSPORT`   | `mock` (in-browser server + bots) or `socket` (the backend)              |
+| `NEXT_PUBLIC_DEMO_OFFLINE`     | `1` = fake USDC balance in the browser; `0` = real wallet + contracts    |
+| `NEXT_PUBLIC_ONCHAIN_BIDS`     | `1` = lock bids in RoomManager on join (needs join tickets); default `0` |
+| `NEXT_PUBLIC_BACKEND_API_URL`  | Game server URL in socket mode, e.g. `http://localhost:3001`             |
+| `NEXT_PUBLIC_REOWN_PROJECT_ID` | Reown (WalletConnect) project id                                         |
+| `NEXT_PUBLIC_MONAD_*`          | Chain settings (defaults: Monad testnet)                                 |
+| `NEXT_PUBLIC_*_ADDRESS`        | Optional overrides; by default addresses come from `sc/deployments`      |
 
 See the root [README](../README.md) for run modes and Vercel deployment.

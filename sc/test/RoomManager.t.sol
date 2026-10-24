@@ -230,7 +230,8 @@ contract RoomManagerTest is Fixture {
             ROOM,
             _addrs(bob),
             _noFees(),
-            abi.encodeWithSelector(RoomManager.RoomNotStarted.selector, ROOM, RoomManager.Status.Settled)
+            // The settled room is closed; its id now points at a fresh, empty generation.
+            abi.encodeWithSelector(RoomManager.RoomNotStarted.selector, ROOM, RoomManager.Status.None)
         );
     }
 
@@ -279,9 +280,7 @@ contract RoomManagerTest is Fixture {
         assertEq(vault.activeRoomsOf(carol), 0);
         _assertSolvent();
 
-        vm.expectRevert(
-            abi.encodeWithSelector(RoomManager.RoomAlreadyClosed.selector, ROOM, RoomManager.Status.Refunded)
-        );
+        vm.expectRevert(abi.encodeWithSelector(RoomManager.RoomAlreadyClosed.selector, ROOM, RoomManager.Status.None));
         rooms.refundRoom(ROOM);
     }
 
@@ -289,10 +288,54 @@ contract RoomManagerTest is Fixture {
         _threePlayerGame();
         _settle(ROOM, _addrs(bob), _noFees());
         vm.warp(block.timestamp + 2 hours);
-        vm.expectRevert(
-            abi.encodeWithSelector(RoomManager.RoomAlreadyClosed.selector, ROOM, RoomManager.Status.Settled)
-        );
+        vm.expectRevert(abi.encodeWithSelector(RoomManager.RoomAlreadyClosed.selector, ROOM, RoomManager.Status.None));
         rooms.refundRoom(ROOM);
+    }
+
+    function test_RefundOfStartedRoomCountsFromStart() public {
+        _join(alice, ROOM, BID, 4);
+        _join(bob, ROOM, BID, 4);
+        // The lobby waits longer than the refund delay before the game starts.
+        vm.warp(block.timestamp + 2 hours);
+        vm.prank(operator);
+        rooms.startRoom(ROOM);
+        (,,,, uint64 startedAt,) = rooms.getRoom(ROOM);
+
+        vm.expectRevert(abi.encodeWithSelector(RoomManager.RefundNotAvailable.selector, startedAt + 1 hours));
+        rooms.refundRoom(ROOM);
+
+        vm.warp(startedAt + 1 hours);
+        rooms.refundRoom(ROOM);
+        assertEq(vault.availableBalanceOf(alice), 10 * USDC);
+        _assertSolvent();
+    }
+
+    function test_SettledRoomIdCanBeReused() public {
+        _threePlayerGame();
+        _settle(ROOM, _addrs(bob), _noFees());
+        assertFalse(rooms.isInRoom(ROOM, alice));
+
+        // Same code, new terms: a brand-new room.
+        _join(alice, ROOM, 2 * BID, 2);
+        (uint256 bid, uint8 maxPlayers, RoomManager.Status status,,, address[] memory players) = rooms.getRoom(ROOM);
+        assertEq(bid, 2 * BID);
+        assertEq(maxPlayers, 2);
+        assertEq(uint8(status), uint8(RoomManager.Status.Open));
+        assertEq(players.length, 1);
+        assertTrue(rooms.isInRoom(ROOM, alice));
+        assertFalse(rooms.isInRoom(ROOM, bob));
+        _assertSolvent();
+    }
+
+    function test_RefundedRoomIdCanBeReused() public {
+        _threePlayerGame();
+        vm.warp(block.timestamp + 1 hours);
+        rooms.refundRoom(ROOM);
+        _join(carol, ROOM, BID, 3);
+        (,, RoomManager.Status status,,, address[] memory players) = rooms.getRoom(ROOM);
+        assertEq(uint8(status), uint8(RoomManager.Status.Open));
+        assertEq(players.length, 1);
+        _assertSolvent();
     }
 
     // ------------------------------------------------------------ admin

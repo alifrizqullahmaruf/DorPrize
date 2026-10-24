@@ -467,6 +467,25 @@ export const roomManagerAbi = [
   },
   {
     "type": "function",
+    "name": "roomKey",
+    "inputs": [
+      {
+        "name": "roomId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "setBackendSigner",
     "inputs": [
       {

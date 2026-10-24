@@ -14,6 +14,16 @@ import {
 import { IS_DEMO } from "@/features/wallet/account";
 import { useProfile } from "@/features/wallet/profile";
 
+/**
+ * Lock bids in RoomManager on join. Off (default) until the backend issues
+ * join tickets: players then play together while the wallet (faucet, deposit,
+ * withdraw) still runs on-chain.
+ */
+const BIDS_ON_CHAIN = process.env.NEXT_PUBLIC_ONCHAIN_BIDS === "1";
+
+/** Whether joining a room actually locks the bid (simulated balance in demo mode). */
+export const BIDS_LOCKED = IS_DEMO || BIDS_ON_CHAIN;
+
 export type JoinRoomTx = {
   /** Lock the bid for `roomId`. Resolves true when the player may ready up. */
   lockBid: (roomId: string, bid: number) => Promise<boolean>;
@@ -57,10 +67,8 @@ function useChainJoin(): JoinRoomTx {
   const { writeContractAsync } = useWriteContract();
   return {
     lockBid: async (roomId, bid) => {
-      if (!hasRoomContractConfig()) {
-        // Contract not deployed yet: let the backend handle locking.
-        return true;
-      }
+      // Bids off or contract not deployed yet: nothing to lock on-chain.
+      if (!BIDS_ON_CHAIN || !hasRoomContractConfig()) return true;
       // The backend checks room access (public / QR) and capacity, then signs an EIP-712
       // JoinTicket(roomId, player, bid, maxPlayers, deadline) for RoomManager.joinRoom.
       const ticket = await backendPost<JoinTicket>(`/rooms/${roomId}/ticket`);
@@ -76,7 +84,7 @@ function useChainJoin(): JoinRoomTx {
       return true;
     },
     releaseBid: async (roomId) => {
-      if (!hasRoomContractConfig()) return;
+      if (!BIDS_ON_CHAIN || !hasRoomContractConfig()) return;
       const hash = await writeContractAsync({
         address: ROOM_MANAGER_ADDRESS as Hex,
         abi: ROOM_MANAGER_ABI,

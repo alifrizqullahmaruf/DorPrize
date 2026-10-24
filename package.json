@@ -13,6 +13,7 @@
     "dev": "npm run dev -w @dorprize/frontend",
     "dev:backend": "npm run dev -w @dorprize/backend",
     "dev:all": "concurrently -n frontend,backend -c yellow,cyan \"npm run dev -w @dorprize/frontend\" \"npm run dev -w @dorprize/backend\"",
+    "tunnel": "cloudflared tunnel --url http://localhost:3001",
     "build": "npm run build -w @dorprize/frontend",
     "start": "npm run start -w @dorprize/frontend",
     "lint": "npm run lint -w @dorprize/frontend",

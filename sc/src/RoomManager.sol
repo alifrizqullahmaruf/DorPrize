@@ -19,6 +19,9 @@ import {GameVault} from "./GameVault.sol";
 ///   startRoom (operator / relayer)       -> Started   nobody can leave any more
 ///   settleRoom (anyone, backend-signed)  -> Settled   pot split between winners, fees to treasury
 ///   refundRoom (anyone, after delay)     -> Refunded  every bid returned
+///
+/// A closed (settled or refunded) room id can be opened again: each id has a generation
+/// counter and room state lives under (roomId, generation).
 contract RoomManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, EIP712Upgradeable, PausableUpgradeable {
     using ECDSA for bytes32;
 
@@ -86,8 +89,11 @@ contract RoomManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, EIP7
     address public operator;
     uint64 public refundDelay;
 
-    mapping(bytes32 roomId => Room room) private rooms;
-    mapping(bytes32 roomId => mapping(address player => bool joined)) private joined;
+    /// Keyed by roomKey(roomId) = keccak256(roomId, generation).
+    mapping(bytes32 roomKey => Room room) private rooms;
+    mapping(bytes32 roomKey => mapping(address player => bool joined)) private joined;
+    /// Bumped when a room closes so the same id can be reused.
+    mapping(bytes32 roomId => uint64 generation) private generations;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -155,7 +161,7 @@ contract RoomManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, EIP7
         if (block.timestamp > deadline) revert TicketExpired(deadline);
         _verify(hashJoinTicket(roomId, msg.sender, bid, maxPlayers, deadline), signature);
 
-        Room storage room = rooms[roomId];
+        Room storage room = rooms[_key(roomId)];
         if (room.status == Status.None) {
             if (bid < MIN_BID) revert InvalidBid(bid);
             if (maxPlayers < MIN_PLAYERS || maxPlayers > MAX_PLAYERS) revert InvalidMaxPlayers(maxPlayers);
@@ -168,10 +174,10 @@ contract RoomManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, EIP7
             if (room.status != Status.Open) revert RoomNotOpen(roomId, room.status);
             if (bid != room.bid || maxPlayers != room.maxPlayers) revert RoomTermsMismatch(room.bid, room.maxPlayers);
         }
-        if (joined[roomId][msg.sender]) revert AlreadyInRoom(roomId, msg.sender);
+        if (joined[_key(roomId)][msg.sender]) revert AlreadyInRoom(roomId, msg.sender);
         if (room.players.length >= room.maxPlayers) revert RoomFull(roomId);
 
-        joined[roomId][msg.sender] = true;
+        joined[_key(roomId)][msg.sender] = true;
         room.players.push(msg.sender);
         vault.lockBid(msg.sender, roomId, bid);
         emit PlayerJoined(roomId, msg.sender, bid);
@@ -179,11 +185,11 @@ contract RoomManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, EIP7
 
     /// @notice Leave before the game starts; the bid goes back to the available balance.
     function leaveRoom(bytes32 roomId) external {
-        Room storage room = rooms[roomId];
+        Room storage room = rooms[_key(roomId)];
         if (room.status != Status.Open) revert RoomNotOpen(roomId, room.status);
-        if (!joined[roomId][msg.sender]) revert NotInRoom(roomId, msg.sender);
+        if (!joined[_key(roomId)][msg.sender]) revert NotInRoom(roomId, msg.sender);
 
-        joined[roomId][msg.sender] = false;
+        joined[_key(roomId)][msg.sender] = false;
         address[] storage players = room.players;
         for (uint256 i = 0; i < players.length; i++) {
             if (players[i] == msg.sender) {
@@ -194,7 +200,7 @@ contract RoomManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, EIP7
         }
         uint256 bid = room.bid;
         // An empty room is forgotten so its id can be opened again with new terms.
-        if (players.length == 0) delete rooms[roomId];
+        if (players.length == 0) delete rooms[_key(roomId)];
 
         vault.unlockBid(msg.sender, roomId, bid);
         emit PlayerLeft(roomId, msg.sender);
@@ -204,7 +210,7 @@ contract RoomManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, EIP7
 
     /// @notice Called by the backend relayer when the start countdown begins. Leaving is closed after this.
     function startRoom(bytes32 roomId) external onlyOperator whenNotPaused {
-        Room storage room = rooms[roomId];
+        Room storage room = rooms[_key(roomId)];
         if (room.status != Status.Open) revert RoomNotOpen(roomId, room.status);
         if (room.players.length < MIN_PLAYERS) revert NotEnoughPlayers(room.players.length);
         room.status = Status.Started;
@@ -222,7 +228,7 @@ contract RoomManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, EIP7
         uint64 deadline,
         bytes calldata signature
     ) external whenNotPaused {
-        Room storage room = rooms[roomId];
+        Room storage room = rooms[_key(roomId)];
         if (room.status != Status.Started) revert RoomNotStarted(roomId, room.status);
         // Deadlines/refund windows are minutes long; validator timestamp drift is irrelevant.
         // forge-lint: disable-next-line(block-timestamp)
@@ -235,6 +241,7 @@ contract RoomManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, EIP7
 
         // Effects before interactions: a room can only ever be settled once.
         room.status = Status.Settled;
+        generations[roomId] += 1;
 
         uint256 payoutEach = vault.settlePot(roomId, players, room.bid, winners);
         uint256 charged;
@@ -247,19 +254,22 @@ contract RoomManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, EIP7
     /// @notice Safety valve: if a room is not settled within `refundDelay` of its creation,
     ///         anyone can return every bid.
     function refundRoom(bytes32 roomId) external {
-        Room storage room = rooms[roomId];
+        Room storage room = rooms[_key(roomId)];
         if (room.status != Status.Open && room.status != Status.Started) {
             revert RoomAlreadyClosed(roomId, room.status);
         }
-        uint64 availableAt = room.createdAt + refundDelay;
+        // A started game is measured from its start, so a long lobby cannot cut a game short.
+        uint64 availableAt = (room.status == Status.Started ? room.startedAt : room.createdAt) + refundDelay;
         // Deadlines/refund windows are minutes long; validator timestamp drift is irrelevant.
         // forge-lint: disable-next-line(block-timestamp)
         if (block.timestamp < availableAt) revert RefundNotAvailable(availableAt);
 
         room.status = Status.Refunded;
+        generations[roomId] += 1;
         address[] memory players = room.players;
+        uint256 bid = room.bid;
         for (uint256 i = 0; i < players.length; i++) {
-            vault.unlockBid(players[i], roomId, room.bid);
+            vault.unlockBid(players[i], roomId, bid);
         }
         emit RoomRefunded(roomId, players.length);
     }
@@ -278,12 +288,17 @@ contract RoomManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, EIP7
             address[] memory players
         )
     {
-        Room storage room = rooms[roomId];
+        Room storage room = rooms[_key(roomId)];
         return (room.bid, room.maxPlayers, room.status, room.createdAt, room.startedAt, room.players);
     }
 
     function isInRoom(bytes32 roomId, address player) external view returns (bool) {
-        return joined[roomId][player];
+        return joined[_key(roomId)][player];
+    }
+
+    /// @notice Storage key of the current generation of `roomId`.
+    function roomKey(bytes32 roomId) external view returns (bytes32) {
+        return _key(roomId);
     }
 
     /// @notice EIP-712 digest the backend signs for a join ticket.
@@ -316,6 +331,10 @@ contract RoomManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, EIP7
 
     // ---------------------------------------------------------------- internal
 
+    function _key(bytes32 roomId) internal view returns (bytes32) {
+        return keccak256(abi.encode(roomId, generations[roomId]));
+    }
+
     function _verify(bytes32 digest, bytes calldata signature) internal view {
         address recovered = digest.recover(signature);
         if (recovered != backendSigner) revert InvalidSignature(recovered, backendSigner);
@@ -324,7 +343,7 @@ contract RoomManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, EIP7
     function _checkWinners(bytes32 roomId, address[] calldata winners) internal view {
         if (winners.length == 0) revert InvalidWinners();
         for (uint256 i = 0; i < winners.length; i++) {
-            if (!joined[roomId][winners[i]]) revert InvalidWinners();
+            if (!joined[_key(roomId)][winners[i]]) revert InvalidWinners();
             for (uint256 j = 0; j < i; j++) {
                 if (winners[j] == winners[i]) revert InvalidWinners();
             }

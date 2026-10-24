@@ -2,6 +2,22 @@
 
 A blind-shot arena game for 2–10 players on a shrinking lava board, built for **Monad Blitz #2**. Players bet testnet USDC; the last one standing takes the pot. Product spec: [docs/PRD.md](docs/PRD.md).
 
+## Live demo
+
+- **Play:** _<Vercel URL>_
+- **Network:** Monad testnet (chain id `10143`), explorer [testnet.monadexplorer.com](https://testnet.monadexplorer.com)
+
+| Contract    | Address (proxy) |
+| ----------- | --------------- |
+| GameUSDC    | _<address>_     |
+| USDCFaucet  | _<address>_     |
+| GameVault   | _<address>_     |
+| RoomManager | _<address>_     |
+
+**Try it with a friend:** open the live URL in two browsers, connect a wallet on Monad testnet, claim test USDC from the **Faucet** and **Deposit** it into the vault (both are on-chain transactions), then one player creates a room and the other joins with the room code. Both press **SIAP** and the shootout starts.
+
+What runs on-chain today: faucet, vault deposit and withdraw. Locking bids in `RoomManager` and paying the pot on-chain need backend join tickets and a settlement relayer, which are next; until then the game itself is played through the game server.
+
 ## Repository layout
 
 ```
@@ -55,7 +71,16 @@ Already cloned without submodules? Run `git submodule update --init --recursive`
 
 **Local multiplayer.** In `frontend/.env.local` set `NEXT_PUBLIC_GAME_TRANSPORT=socket` and `NEXT_PUBLIC_BACKEND_API_URL=http://localhost:3001`, then `npm run dev:all`. Open two different browsers (guest ids are per browser), join the same room code and press Ready in both. For solo testing start the backend with `ALLOW_BOTS=1`.
 
-**On-chain (Monad testnet).** Deploy the contracts ([sc/README.md](sc/README.md)), run `npm run sc:abi`, set `NEXT_PUBLIC_DEMO_OFFLINE=0` and `NEXT_PUBLIC_REOWN_PROJECT_ID`. The wallet layer is adapted from [PassChick](https://github.com/wngstnr-code/pass-chick). Server-side SIWE, join tickets and the settlement relayer are not built yet.
+**On-chain (Monad testnet).** Deploy the contracts ([sc/README.md](sc/README.md)), run `npm run sc:abi`, set `NEXT_PUBLIC_DEMO_OFFLINE=0` and `NEXT_PUBLIC_REOWN_PROJECT_ID`. The wallet layer is adapted from [PassChick](https://github.com/wngstnr-code/pass-chick). `NEXT_PUBLIC_ONCHAIN_BIDS=1` additionally locks bids in `RoomManager`; it needs backend join tickets, which are not built yet, so keep it at `0`.
+
+### Hosting the live demo (game server on a laptop)
+
+The game server keeps open WebSocket connections, so it does not run on Vercel. For the demo it runs on a laptop behind a free Cloudflare tunnel ([install `cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)):
+
+1. In `backend/.env` set `CORS_ORIGINS=http://localhost:3000,https://<your-app>.vercel.app`, then `npm run dev:backend`.
+2. In a second terminal: `npm run tunnel` and copy the `https://….trycloudflare.com` URL it prints.
+3. In Vercel → Settings → Environment Variables set `NEXT_PUBLIC_GAME_TRANSPORT=socket`, `NEXT_PUBLIC_BACKEND_API_URL=<tunnel URL>`, `NEXT_PUBLIC_DEMO_OFFLINE=0`, `NEXT_PUBLIC_REOWN_PROJECT_ID=<id>`, then **Redeploy**.
+4. Keep both terminals running. A quick tunnel gets a new URL every time it restarts, which means repeating step 3.
 
 ## Deploying the frontend to Vercel
 
