@@ -18,7 +18,8 @@ escrow. No frontend source was changed for this integration.
   PostgreSQL connection, or real MetaMask-to-backend demo yet.
 
 The current source layout is `frontend/`, `backend/`, `shared/` and `sc/`.
-Native integration was migrated onto the new GitHub history at `080c2c2`.
+Native integration was migrated onto the new GitHub history at `080c2c2`, then
+rebased onto the team's update `744ef45` while preserving the upstream frontend.
 
 ## Start and storage
 

@@ -123,6 +123,8 @@ npm run deploy:native:monad -- --account dorprize-deployer
 
 Run the commands from `sc`. Only chain 10143 and local 31337 are accepted. There are no guessed deployment addresses. Deployment role addresses must be explicitly configured; treasury is immutable. After broadcast, verify deployed source using the MONSKILLS verification procedure and matching compiler/settings.
 
+Run `npm run verify:monad` from `sc` to verify the native broadcast on MonadVision's Sourcify service using the same Foundry profile as deployment. `verify:legacy:monad` selects the separate USDC deployment. Native RPC reads use `monad_native_testnet` from `MONAD_RPC_URL`; the legacy public RPC alias remains unchanged.
+
 After a **finalized successful direct deployment receipt**, set `NATIVE_GAME_VAULT_ADDRESS` and `DEPLOYMENT_TX_HASH`, then run:
 
 ```sh

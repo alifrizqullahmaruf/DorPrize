@@ -85,12 +85,12 @@ The deployer key never sits in a file or gets pasted anywhere: it lives in an en
 4. Deploy and verify:
    ```bash
    cd sc
-   npm run deploy:monad    # forge script … --account deployer (asks for the keystore password)
-   npm run verify:monad    # every implementation + proxy on MonadVision (Sourcify)
+   npm run deploy:legacy:monad    # legacy USDC proxies; asks for the deployer keystore password
+   npm run verify:legacy:monad    # legacy implementation + proxy verification
    ```
    The script deploys every proxy, lets the faucet mint, points the vault at `RoomManager` and writes the addresses to `deployments/10143.json`.
 5. Run `npm run sc:abi` from the root so the frontend picks up the addresses, then commit `deployments/10143.json` and `abi/`.
 
 The `OPERATOR` relayer needs MON to call `startRoom` and `settleRoom` once on-chain bids are enabled.
 
-Local test without a real wallet: run `anvil`, then `npm run deploy:local -w @dorprize/contracts` (uses anvil's dev account; chain 31337 only).
+Local legacy test: run `anvil`, then `npm run deploy:legacy:local -w @dorprize/contracts` (uses anvil's dev account; chain 31337 only). Native MON deployment uses `deploy:native:local` instead.

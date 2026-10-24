@@ -5,7 +5,7 @@ Terakhir diperbarui: 24 Oktober 2026 (WIB).
 ## Instruksi pengguna
 
 - Task terbaru: ambil repo GitHub terbaru, perbaiki backend/smart contract yang dapat dikerjakan tanpa konfigurasi produksi, uji lokal, kemudian commit/push. Pengguna telah mengizinkan push setelah pengujian selesai.
-- Checkout aktif sekarang `DorPrize-current/`, branch `codex/native-backend`, berbasis `origin/main` commit `080c2c2`. Riwayat GitHub telah di-force-update dan struktur berubah menjadi `frontend/`, `backend/`, `shared/`, `sc/`. Checkout `DorPrize/` lama dipertahankan utuh sebagai cadangan dan bukan target push.
+- Checkout aktif sekarang `DorPrize-current/`, branch `codex/native-backend`. Berawal dari main baru `080c2c2`, kemudian direbase ke `744ef45` yang masuk selama pengerjaan. Perubahan UI dan legacy kontrak upstream dipertahankan. Riwayat GitHub telah di-force-update dan struktur berubah menjadi `frontend/`, `backend/`, `shared/`, `sc/`. Checkout `DorPrize/` lama dipertahankan utuh sebagai cadangan dan bukan target push.
 - Explorer yang diberikan pengguna: `https://testnet.monadvision.com/`. Handoff deployment hanya memuat alamat kontrak/chain/RPC publik/ABI/explorer; tidak pernah private key.
 
 - Kerjakan smart contract dengan source UI dari `git@github.com:alifrizqullahmaruf/DorPrize.git`.
@@ -17,7 +17,7 @@ Terakhir diperbarui: 24 Oktober 2026 (WIB).
 
 ## Kebutuhan dan cakupan
 
-PRD terbaru ada di folder induk MONAD: `../docs/PRD.md`, `../docs/IMPLEMENTATION_PLAN.md`, `../docs/TOOL_STACK.md`.
+Acuan native yang tersedia di repo ini: `sc/NATIVE_MON.md` dan `backend/NATIVE_BACKEND.md`, beserta keputusan di context ini. `docs/PRD.md` masih memuat spesifikasi prototipe USDC. PRD MON yang dipakai saat pengerjaan tersimpan di workspace induk MONAD dan tidak boleh tertukar dengan spesifikasi legacy tersebut.
 
 - 2–10 pemain. Bid minimum 1 MON, custom pecahan diperbolehkan.
 - Kontrak mengurus saldo/escrow/payout/refund. Server menentukan hasil; resultHash bukan bukti kebenaran game.
@@ -51,7 +51,7 @@ PRD terbaru ada di folder induk MONAD: `../docs/PRD.md`, `../docs/IMPLEMENTATION
 
 ## Menjalankan ulang pada host saat ini
 
-Checkpoint migrasi 24 Oktober 2026: native contract/backend sudah dipindahkan ke struktur terbaru tanpa mengubah `frontend/`. Submodule Solidity versi repo terbaru diinisialisasi; 63 test Foundry Monad lulus. Recovery operator diperbaiki agar pending transaction yang finalized revert tidak menghentikan startup/job room lain. Journal file mengambil snapshot saat `put` dipanggil dan menolak struktur state rusak. PostgreSQL bootstrap transaksional mengaktifkan RLS dan mencabut akses PUBLIC/anon/authenticated, serta membersihkan koneksi jika startup gagal. Endpoint `/ready` memeriksa journal/RPC. Suite PostgreSQL nyata lokal lulus 4 checks (persistence, second-writer fencing, RLS denial, lost connection recovery); suite native Anvil lulus 8 checks termasuk revert recovery. Handoff recorder memeriksa canonical receipt dan mengekspor lima detail publik sesuai panduan pengguna. CI Linux/Windows ditambahkan. Pemeriksaan akhir seluruh workspace/ABI/format sedang dijalankan sebelum commit/push. Dust tidak diubah dan belum ada transaksi testnet.
+Checkpoint final 24 Oktober 2026: native contract/backend dipindahkan ke struktur terbaru dan direbase ke `744ef45`; diff `frontend/` terhadap main kosong. Submodule Solidity upstream dipertahankan. Recovery operator diperbaiki agar pending transaction yang finalized revert tidak menghentikan startup/job room lain. Journal file mengambil snapshot saat `put` dipanggil dan menolak struktur state rusak. PostgreSQL bootstrap transaksional mengaktifkan RLS dan mencabut akses PUBLIC/anon/authenticated, serta membersihkan koneksi jika startup gagal. Endpoint `/ready` memeriksa journal/RPC. Instalasi bersih `npm ci` selesai. Validasi akhir: 66 checks Foundry Monad termasuk 8.192 invariant calls, 47 test game-core, 20 test backend/auth/journal, 6 helper ekonomi, 1 integrasi kontrak/recorder/deploy script, 8 checks native Anvil, dan 4 checks PostgreSQL nyata lulus. Typecheck seluruh workspace, format Solidity/Prettier, ABI generation, dan diff check lulus. Handoff recorder memeriksa canonical receipt dan mengekspor lima detail publik; explorer memakai MonadVision testnet. Perintah native deploy/verify dibedakan dari legacy, termasuk RPC khusus native dari MONAD_RPC_URL dan keystore legacy terbaru. CI Linux/Windows ditambahkan; hasil CI remote belum diperiksa. Commit implementasi `fdb6b59` berhasil dipush ke `origin/codex/native-backend`. Dust tidak diubah dan belum ada transaksi testnet.
 
 Tambahkan folder `../tmp/foundry-v1.8.6` ke PATH shell, atau gunakan binary absolutnya. `ANVIL_BIN` dan `FORGE_BIN` dapat dipakai oleh integration test bila tool belum ada di PATH.
 
@@ -69,7 +69,7 @@ Source baru utama: `sc/src/NativeGameVault.sol`. API frontend/backend: `@dorpriz
 
 ## Berikutnya
 
-- **Kontrak dan integrasi backend lokal tersedia pada struktur baru.** Validasi akhir sebelum commit/push sedang berjalan. Lanjutkan dari panduan `backend/NATIVE_BACKEND.md`.
+- **Kontrak dan integrasi backend lokal selesai, teruji dan sudah dipush** ke branch `codex/native-backend` (commit implementasi `fdb6b59`). Main tidak diubah oleh push ini dan belum ada PR. Lanjutkan dari panduan `backend/NATIVE_BACKEND.md`.
 - Teman pengguna menangani UI; handoff memakai native API, MetaMask, 18 desimal dan ABI native. Jangan menyamakan deployment web Vercel dengan kesiapan backend/kontrak native.
 - Deployment jaringan/verifikasi explorer/hosting backend belum dilakukan. Diperlukan assignment role owner/operator/backendSigner/treasury, signer deployment dan server yang disimpan aman, MON testnet operator, serta RPC proyek. Alamat publik wallet saja tidak memberikan otoritas signing. Tidak ada transaksi ke testnet.
 - PostgreSQL adapter sudah diuji pada server PostgreSQL nyata sementara di localhost. Database produksi belum dihubungkan karena DATABASE_URL belum tersedia; uji game end-to-end memakai journal file lokal. Gunakan connection role server yang memiliki tabel journal, direct/session URL dan satu replica backend.
