@@ -23,28 +23,28 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="pointer-events-auto fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4"
+      className="pointer-events-auto fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-3 sm:p-4 safe-inset"
       onClick={onClose}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="settings-title"
-        className="anim-pop w-full max-w-sm panel p-5"
+        className="anim-pop max-h-[92dvh] w-full max-w-sm overflow-y-auto panel p-3.5 sm:p-5"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
-          <h2 id="settings-title" className="font-pixel text-xl text-gold">
+          <h2 id="settings-title" className="font-pixel text-lg sm:text-xl text-gold">
             PENGATURAN
           </h2>
-          <button type="button" onClick={onClose} className="btn-stone px-2.5 py-1 text-sm" aria-label="Tutup">
+          <button type="button" onClick={onClose} className="btn-stone px-2 py-0.5 sm:px-2.5 sm:py-1 text-xs sm:text-sm" aria-label="Tutup">
             ✕
           </button>
         </div>
 
-        <label className="mt-4 block">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-stone">Sensitivitas mouse</span>
+        <label className="mt-3 sm:mt-4 block">
+          <div className="flex items-center justify-between text-xs sm:text-sm">
+            <span className="text-stone">Sensitivitas mouse / bidik</span>
             <span className="font-pixel text-gold">{sensitivity.toFixed(1)}×</span>
           </div>
           <input
@@ -54,7 +54,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
             step={0.1}
             value={sensitivity}
             onChange={(e) => setSensitivity(Number(e.target.value))}
-            className="mt-2 w-full accent-[#f5b82e]"
+            className="mt-1.5 sm:mt-2 w-full accent-[#f5b82e]"
           />
           <div className="flex justify-between text-[10px] text-ash">
             <span>Lambat</span>
@@ -65,7 +65,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
           </div>
         </label>
 
-        <label className="mt-4 flex items-center justify-between text-sm">
+        <label className="mt-3 sm:mt-4 flex items-center justify-between text-xs sm:text-sm">
           <span className="text-stone">Suara</span>
           <input
             type="checkbox"
@@ -74,14 +74,14 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
               setMuted(!e.target.checked);
               setMutedState(!e.target.checked);
             }}
-            className="size-5 accent-[#f5b82e]"
+            className="size-4 sm:size-5 accent-[#f5b82e]"
           />
         </label>
 
-        <button type="button" onClick={onClose} className="mt-5 w-full btn-gold py-2.5">
+        <button type="button" onClick={onClose} className="mt-4 sm:mt-5 w-full btn-gold py-2 sm:py-2.5 text-sm sm:text-base">
           SELESAI
         </button>
-        <p className="mt-2 text-center text-[11px] text-ash">
+        <p className="mt-1.5 sm:mt-2 text-center text-[10px] sm:text-[11px] text-ash">
           Setelah menutup, klik layar untuk mengendalikan kamera lagi.
         </p>
       </div>

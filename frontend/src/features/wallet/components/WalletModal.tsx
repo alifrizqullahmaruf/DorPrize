@@ -17,46 +17,46 @@ export function WalletModal({
   const a = useAccountView();
   const withdrawBlocked = a.locked > 0;
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-3 sm:p-4 safe-inset" onClick={onClose}>
       <div
-        className="anim-pop w-full max-w-sm panel p-5"
+        className="anim-pop max-h-[92dvh] w-full max-w-sm overflow-y-auto panel p-3.5 sm:p-5"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-label="Dompet"
       >
         <div className="flex items-center justify-between">
-          <h2 className="font-pixel text-xl text-gold">DOMPET</h2>
-          <button type="button" onClick={onClose} className="btn-stone px-2.5 py-1 text-sm" aria-label="Tutup">
+          <h2 className="font-pixel text-lg sm:text-xl text-gold">DOMPET</h2>
+          <button type="button" onClick={onClose} className="btn-stone px-2 py-0.5 sm:px-2.5 sm:py-1 text-xs sm:text-sm" aria-label="Tutup">
             ✕
           </button>
         </div>
-        <div className="mt-1 text-xs text-ash">
+        <div className="mt-1 text-[11px] sm:text-xs text-ash">
           {a.mode === "demo"
             ? "Mode demo: saldo USDC testnet tiruan disimpan di browser."
             : `Vault GameVault · ${shortAddress(a.address)}`}
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <div className="rounded-lg bg-white/5 p-3">
-            <div className="text-[11px] text-ash">Tersedia</div>
-            <div className="flex items-center gap-1 font-pixel text-lg text-gold">
-              <UsdcIcon size={16} />
+        <div className="mt-2.5 sm:mt-4 grid grid-cols-2 gap-2">
+          <div className="rounded-lg bg-white/5 p-2 sm:p-3">
+            <div className="text-[10px] sm:text-[11px] text-ash">Tersedia</div>
+            <div className="flex items-center gap-1 font-pixel text-base sm:text-lg text-gold">
+              <UsdcIcon size={14} />
               {a.availableDisplay}
             </div>
           </div>
-          <div className="rounded-lg bg-white/5 p-3">
-            <div className="text-[11px] text-ash">Terkunci di room</div>
-            <div className="font-pixel text-lg">{a.lockedDisplay}</div>
+          <div className="rounded-lg bg-white/5 p-2 sm:p-3">
+            <div className="text-[10px] sm:text-[11px] text-ash">Terkunci di room</div>
+            <div className="font-pixel text-base sm:text-lg">{a.lockedDisplay}</div>
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-3 gap-1 rounded-lg bg-black/40 p-1">
+        <div className="mt-2.5 sm:mt-4 grid grid-cols-3 gap-1 rounded-lg bg-black/40 p-1">
           {(["deposit", "withdraw", "faucet"] as WalletTab[]).map((t) => (
             <button
               key={t}
               type="button"
               onClick={() => onTab(t)}
-              className={`rounded-md py-1.5 font-pixel text-xs ${tab === t ? "bg-gold text-ink" : "text-stone hover:bg-white/5"}`}
+              className={`rounded-md py-1 sm:py-1.5 font-pixel text-[11px] sm:text-xs ${tab === t ? "bg-gold text-ink" : "text-stone hover:bg-white/5"}`}
             >
               {t === "deposit" ? "Deposit" : t === "withdraw" ? "Tarik" : "Faucet"}
             </button>

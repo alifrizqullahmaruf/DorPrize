@@ -285,23 +285,23 @@ export function GameHud() {
     <div className="pointer-events-none absolute inset-0 select-none">
       {/* top center: phase */}
       {banner && (
-        <div className="absolute inset-x-0 top-3 flex justify-center px-3 sm:top-4">
-          <div key={banner.replace(/\d+/g, "")} className="anim-pop panel px-4 py-2 text-center">
-            <div className={`font-pixel text-base leading-tight sm:text-2xl ${toneClass}`}>{banner}</div>
-            {sub && <div className="mt-0.5 text-[11px] text-ash sm:text-xs">{sub}</div>}
+        <div className="absolute inset-x-0 top-2 flex justify-center px-3 sm:top-4 [@media(max-height:520px)]:top-1.5 pointer-events-none">
+          <div key={banner.replace(/\d+/g, "")} className="anim-pop panel px-3 py-1.5 sm:px-4 sm:py-2 text-center [@media(max-height:520px)]:py-1 [@media(max-height:520px)]:px-3">
+            <div className={`font-pixel text-sm leading-tight sm:text-2xl [@media(max-height:520px)]:text-xs ${toneClass}`}>{banner}</div>
+            {sub && <div className="mt-0.5 text-[10px] text-ash sm:text-xs [@media(max-height:520px)]:text-[9px] [@media(max-height:520px)]:mt-0">{sub}</div>}
           </div>
         </div>
       )}
 
       {/* top left: round / pot / alive */}
-      <div className="absolute top-20 left-3 flex flex-col gap-1.5 lg:top-4">
-        <div className="flex items-center gap-3 panel px-3 py-2 font-pixel text-xs sm:text-sm">
+      <div className="absolute top-12 left-2.5 flex flex-col gap-1 sm:top-16 sm:left-3 lg:top-4 [@media(max-height:520px)]:top-[max(0.5rem,env(safe-area-inset-top))] [@media(max-height:520px)]:left-[max(0.75rem,env(safe-area-inset-left))] [@media(max-height:520px)]:gap-1">
+        <div className="flex items-center gap-2 sm:gap-3 panel px-2.5 py-1 sm:px-3 sm:py-1.5 font-pixel text-[11px] sm:text-sm [@media(max-height:520px)]:py-0.5 [@media(max-height:520px)]:px-2 [@media(max-height:520px)]:text-[10px]">
           <span>
             RONDE <b className="text-gold">{room.round || "-"}</b>
             <span className="text-ash">/{MAX_ROUNDS}</span>
           </span>
           <span className="flex items-center gap-1">
-            <UsdcIcon size={14} />
+            <UsdcIcon size={12} />
             <b className="text-gold">{formatUsdc(room.pot)}</b>
           </span>
           <span>
@@ -309,14 +309,14 @@ export function GameHud() {
             <span className="text-ash">/{room.players.length}</span>
           </span>
         </div>
-        <div className="flex gap-1.5">
-          <div className="panel px-3 py-1.5 text-[11px] text-ash sm:text-xs">
-            Saldo skill: <b className="text-gold">{formatUsdc(Math.max(0, budget))}</b> USDC
+        <div className="flex gap-1.5 [@media(max-height:520px)]:gap-1">
+          <div className="panel px-2 py-0.5 sm:px-2.5 sm:py-1 text-[10px] sm:text-xs text-ash [@media(max-height:520px)]:py-0.5 [@media(max-height:520px)]:px-1.5 [@media(max-height:520px)]:text-[9px]">
+            Saldo: <b className="text-gold">{formatUsdc(Math.max(0, budget))}</b> USDC
           </div>
           <button
             type="button"
             onClick={() => setSettingsOpen(true)}
-            className="pointer-events-auto panel px-2.5 text-sm text-stone hover:text-gold"
+            className="pointer-events-auto panel px-2 text-xs sm:text-sm text-stone hover:text-gold [@media(max-height:520px)]:py-0.5 [@media(max-height:520px)]:px-1.5"
             aria-label="Pengaturan"
             title="Pengaturan (sensitivitas mouse, suara)"
           >
@@ -326,13 +326,14 @@ export function GameHud() {
       </div>
 
       {/* top right: kill feed */}
-      <div className="absolute top-40 right-3 flex w-[min(260px,60vw)] flex-col items-end gap-1 sm:top-20 lg:top-4">
+      <div className="absolute top-12 right-2.5 flex w-[min(210px,46vw)] flex-col items-end gap-1 sm:top-16 sm:right-3 lg:top-4 [@media(max-height:520px)]:top-[max(0.5rem,env(safe-area-inset-top))] [@media(max-height:520px)]:right-[max(0.75rem,env(safe-area-inset-right))] [@media(max-height:520px)]:max-w-[200px]">
         {g.feed
           .filter((f) => phase !== "animation" || f.showAt <= perfNow)
+          .slice(-3)
           .map((f) => (
             <div
               key={f.id}
-              className={`anim-pop panel px-2 py-1 text-right text-[11px] sm:text-xs ${
+              className={`anim-pop panel px-2 py-0.5 sm:py-1 text-right text-[10px] sm:text-xs [@media(max-height:520px)]:text-[9px] ${
                 f.tone === "lava" ? "text-lava" : f.tone === "mine" ? "text-gold" : "text-stone"
               }`}
             >
@@ -361,8 +362,8 @@ export function GameHud() {
 
       {/* bottom controls */}
       {!deathShown && (phase === "input" || phase === "animation" || phase === "result") && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-wrap items-end justify-between gap-3 p-3 sm:p-4">
-          <div className="pointer-events-auto flex gap-1.5 sm:gap-2">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-wrap items-end justify-between [@media(max-height:520px)]:justify-end gap-2 sm:gap-3 p-2 sm:p-4 [@media(max-height:520px)]:pb-[max(0.5rem,env(safe-area-inset-bottom))] [@media(max-height:520px)]:pr-[max(0.75rem,env(safe-area-inset-right))] [@media(max-height:520px)]:pl-[max(8rem,calc(env(safe-area-inset-left)+8rem))]">
+          <div className="pointer-events-auto flex gap-1 sm:gap-2">
             {SKILL_ORDER.map((s) => {
               const def = SKILLS[s];
               const cd = g.cooldowns[s];
@@ -378,18 +379,20 @@ export function GameHud() {
                   onClick={() => trySkill(s)}
                   disabled={disabled}
                   title={`${def.name}: ${def.description}`}
-                  className={`relative flex w-[68px] flex-col items-center rounded-lg border-2 px-1 pt-2 pb-1.5 transition sm:w-[84px] ${
+                  className={`relative flex w-[58px] sm:w-[84px] [@media(max-height:520px)]:w-[52px] [@media(max-height:520px)]:h-[56px] flex-col items-center justify-between rounded-lg border-2 px-1 pt-1.5 pb-1 sm:pt-2 sm:pb-1.5 transition ${
                     selected
-                      ? "border-gold bg-[#3a2a08] shadow-[0_0_14px_#f5b82e88]"
-                      : "border-white/10 bg-black/75 hover:bg-black/90"
+                      ? "border-gold bg-[#3a2a08] shadow-[0_2px_0_#c9851a]"
+                      : "border-white/10 bg-black/75 hover:bg-black/90 shadow-[0_2px_0_#000000]"
                   } disabled:opacity-45`}
                 >
-                  <span className="absolute top-0.5 left-1 font-pixel text-[9px] text-ash">{def.hotkey}</span>
-                  <SkillIcon skill={s} size={30} />
-                  <span className="mt-1 font-pixel text-[9px] leading-none text-stone sm:text-[10px]">{def.name}</span>
-                  <span className="mt-0.5 font-pixel text-[10px] text-gold">${formatUsdc(cost)}</span>
+                  <span className="absolute top-0.5 left-1 font-pixel text-[8px] sm:text-[9px] text-ash">{def.hotkey}</span>
+                  <div className="scale-75 sm:scale-100 origin-center my-auto">
+                    <SkillIcon skill={s} size={26} />
+                  </div>
+                  <span className="font-pixel text-[8px] leading-none text-stone sm:text-[10px] truncate max-w-full">{def.name}</span>
+                  <span className="font-pixel text-[8px] sm:text-[10px] text-gold leading-none">${formatUsdc(cost)}</span>
                   {(cd > 0 || helmBlocked) && (
-                    <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/70 font-pixel text-sm text-stone">
+                    <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/70 font-pixel text-xs sm:text-sm text-stone">
                       {helmBlocked ? "AKTIF" : `${cd}R`}
                     </span>
                   )}
@@ -398,7 +401,7 @@ export function GameHud() {
             })}
           </div>
 
-          <div className="pointer-events-auto flex items-end gap-3">
+          <div className="pointer-events-auto flex items-end gap-1.5 sm:gap-3">
             <button
               type="button"
               disabled={!canAct}
@@ -407,27 +410,29 @@ export function GameHud() {
                 sfx.click();
               }}
               aria-pressed={holdFire}
-              className={`h-[72px] w-[78px] rounded-lg border-2 font-pixel text-[11px] leading-tight transition sm:h-[78px] ${
-                holdFire ? "border-gold bg-[#3a2a08] text-gold" : "border-white/10 bg-black/75 text-stone"
+              className={`h-[56px] w-[66px] sm:h-[78px] sm:w-[78px] rounded-lg border-2 font-pixel text-[10px] sm:text-[11px] leading-tight transition ${
+                holdFire
+                  ? "border-gold bg-[#3a2a08] text-gold shadow-[0_2px_0_#c9851a]"
+                  : "border-white/10 bg-black/75 text-stone shadow-[0_2px_0_#000000]"
               } disabled:opacity-45`}
               title="Tidak menembak ronde ini"
             >
               {holdFire ? "TIDAK DOR" : "TAHAN DOR"}
-              <span className="block text-[9px] font-normal text-ash">F</span>
+              <span className="block text-[8px] sm:text-[9px] font-normal text-ash">F</span>
             </button>
             {/* No lock button: the round locks automatically when the timer ends. */}
             <div
-              className={`flex h-[72px] w-[92px] flex-col items-center justify-center rounded-lg border-2 font-pixel sm:h-[78px] sm:w-[110px] ${
+              className={`flex h-[56px] w-[74px] sm:h-[78px] sm:w-[110px] flex-col items-center justify-center rounded-lg border-2 font-pixel ${
                 g.locked
-                  ? "border-gold bg-[#3a2a08] text-gold"
+                  ? "border-gold bg-[#3a2a08] text-gold shadow-[0_2px_0_#c9851a]"
                   : secondsLeft <= 5
-                    ? "border-danger bg-black/75 text-[#ff6b5a]"
-                    : "border-white/10 bg-black/75 text-stone"
+                    ? "border-danger bg-black/75 text-[#ff6b5a] shadow-[0_2px_0_#000000]"
+                    : "border-white/10 bg-black/75 text-stone shadow-[0_2px_0_#000000]"
               }`}
               aria-live="polite"
             >
-              <span className="text-2xl leading-none sm:text-3xl">{g.locked ? "✓" : secondsLeft}</span>
-              <span className="mt-1 text-[9px] font-normal text-ash">{g.locked ? "TERKUNCI" : "KUNCI OTOMATIS"}</span>
+              <span className="text-xl sm:text-3xl leading-none">{g.locked ? "✓" : secondsLeft}</span>
+              <span className="mt-0.5 text-[8px] sm:text-[9px] font-normal text-ash leading-none">{g.locked ? "TERKUNCI" : "KUNCI OTOMATIS"}</span>
             </div>
           </div>
         </div>

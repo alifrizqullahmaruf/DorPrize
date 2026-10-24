@@ -9,6 +9,37 @@
   --ink: #111111;
   --danger: #d93a2b;
   --lava: #ff5a1a;
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+@utility safe-top {
+  padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+}
+@utility safe-bottom {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+}
+@utility safe-left {
+  padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+}
+@utility safe-right {
+  padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+}
+@utility safe-x {
+  padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+  padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+}
+@utility safe-y {
+  padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+}
+@utility safe-inset {
+  padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+  padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+  padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
 }
 
 @theme inline {
@@ -42,15 +73,13 @@ body {
   letter-spacing: 0.02em;
 }
 
-/* Chunky voxel button: flat face + darker "side" below. */
+/* Clean voxel button: single solid shadow (no double shadow, not transparent). */
 @utility btn-gold {
   font-family: var(--font-pixel), monospace;
   background: var(--gold);
   color: var(--ink);
-  border: 3px solid var(--ember);
-  box-shadow:
-    inset 0 -5px 0 var(--gold-dark),
-    0 4px 0 #5b3408;
+  border: 2px solid var(--ember);
+  box-shadow: 0 2.5px 0 #5b3408;
   border-radius: 6px;
   transition:
     transform 80ms,
@@ -60,10 +89,8 @@ body {
     filter: brightness(1.08);
   }
   &:active:not(:disabled) {
-    transform: translateY(3px);
-    box-shadow:
-      inset 0 -2px 0 var(--gold-dark),
-      0 1px 0 #5b3408;
+    transform: translateY(1.5px);
+    box-shadow: 0 1px 0 #5b3408;
   }
   &:disabled {
     filter: grayscale(0.8) brightness(0.7);
@@ -75,10 +102,8 @@ body {
   font-family: var(--font-pixel), monospace;
   background: #3a3734;
   color: var(--stone);
-  border: 3px solid #1d1b19;
-  box-shadow:
-    inset 0 -4px 0 #24211f,
-    0 3px 0 #0c0b0a;
+  border: 2px solid #1d1b19;
+  box-shadow: 0 2px 0 #0c0b0a;
   border-radius: 6px;
   transition:
     transform 80ms,
@@ -88,10 +113,8 @@ body {
     background: #4a4643;
   }
   &:active:not(:disabled) {
-    transform: translateY(2px);
-    box-shadow:
-      inset 0 -2px 0 #24211f,
-      0 1px 0 #0c0b0a;
+    transform: translateY(1.5px);
+    box-shadow: 0 0.5px 0 #0c0b0a;
   }
   &:disabled {
     opacity: 0.5;
@@ -100,10 +123,10 @@ body {
 }
 
 @utility panel {
-  background: rgb(17 17 17 / 0.82);
-  border: 2px solid rgb(255 255 255 / 0.08);
-  border-radius: 10px;
-  box-shadow: 0 6px 0 rgb(0 0 0 / 0.35);
+  background: rgb(17 17 17 / 0.86);
+  border: 1.5px solid rgb(255 255 255 / 0.1);
+  border-radius: 8px;
+  box-shadow: 0 2px 0 #000000;
   backdrop-filter: blur(6px);
 }
 
