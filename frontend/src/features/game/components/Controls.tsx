@@ -318,7 +318,7 @@ function TouchControls() {
         </div>
       </div>
       <div
-        className="absolute bottom-[96px] left-3 size-[104px] rounded-full border-2 border-white/10 bg-black/25 [@media(max-height:520px)]:bottom-[max(0.75rem,env(safe-area-inset-bottom))] [@media(max-height:520px)]:left-[max(0.75rem,env(safe-area-inset-left))] [@media(max-height:520px)]:size-[104px]"
+        className="absolute bottom-[144px] left-3 size-[104px] rounded-full border-2 border-white/10 bg-black/25 [@media(max-height:520px)]:bottom-[max(0.75rem,env(safe-area-inset-bottom))] [@media(max-height:520px)]:left-[max(0.75rem,env(safe-area-inset-left))] [@media(max-height:520px)]:size-[104px]"
         onPointerDown={onStickDown}
         onPointerMove={onStickMove}
         onPointerUp={onStickUp}
