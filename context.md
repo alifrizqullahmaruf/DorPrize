@@ -2,6 +2,17 @@
 
 Terakhir diperbarui: 24 Oktober 2026 (WIB).
 
+## Checkpoint konfigurasi layanan terbaru
+
+- Kuota gratis Railway pengguna habis. Usulan alternatif: Render Free untuk demo testnet, mendukung Node/WebSocket tetapi idle 15 menit dapat sleep dan engine ronde memory-only perlu recovery/refund saat restart. Tidak mengklaim produksi selalu aktif. Dokumentasi `backend/TESTNET_SETUP_ID.md` ditambah konfigurasi Render root repo, npm ci --include=dev, start workspace backend, Supabase session pooler dan /ready; belum ada akun/service hosting dihubungkan. Cloudflare Quick Tunnel lokal alternatif sementara.
+- Simulasi deployment menghasilkan artefak broadcast dry-run; ditambahkan ignore `broadcast/*/*/dry-run/` di sc/.gitignore agar artefak simulasi tidak masuk Git. File lokal environment dan cache tetap diabaikan; source UI tetap utuh.
+- Pengguna memberikan wallet ketiga valid `0xF262fd0A43B499389b5d6ef6153e2A710685349b` untuk backend signer, melengkapi owner lama dan operator `0x5EaD190F2786362c556B9BF4798326d6e11b88F2`. Pengguna menyatakan seluruh wallet telah claim MON testnet.
+- Konfigurasi lokal diabaikan Git telah dibuat: `sc/.env` berisi role publik (deployer/treasury memakai owner), chain dan RPC proyek; `backend/.env` berisi RPC dan template native. Secret RPC tidak dicatat di context atau source versioned. Kedua file diverifikasi oleh `git check-ignore`.
+- Pengguna memberikan project Supabase `dxkqhkssrggzsckkrfos` dan parameter session pooler: host `aws-0-ap-southeast-2.pooler.supabase.com`, port 5432, database `postgres`, user `postgres.dxkqhkssrggzsckkrfos`. DATABASE_URL lokal sudah disusun dengan placeholder `GANTI_PASSWORD_DATABASE` dan sslmode=require; pengguna harus mengisi password URL-encoded langsung di file lokal. Jangan meminta password melalui chat. Belum menghubungi database produksi.
+- RPC Alchemy awalnya mengembalikan HTTP 403 / -32600 karena MONAD_TESTNET belum aktif. Setelah pengguna mengirim ulang URL, pemeriksaan berikutnya berhasil HTTP 200, chain ID 10143. Saldo lewat RPC publik Monad terkonfirmasi: owner 20 MON, operator 10 MON, backend signer 5 MON.
+- Simulasi Foundry `DeployNative.s.sol` lewat RPC proyek dengan `--network monad` dan gas multiplier 110 berhasil; owner/deployer/treasury lama, operator wallet kedua, signer wallet ketiga. Estimasi script 3.049.263 gas, max fee 201 gwei, estimasi dana 0,612901863 MON (bukan biaya deployment aktual). Tidak memakai --broadcast atau keystore/private key. Alamat hasil simulasi bukan deployment dan tidak dimasukkan ke konfigurasi backend/deployment registry. Log lokal `.env.native-dry-run.log` diabaikan Git; nilai RPC disamarkan pada output.
+- Pemeriksaan konfigurasi berikutnya: DATABASE_URL masih memakai placeholder password, secret operator/backend signer kosong, alamat kontrak kosong. Private key operator/backend signer dan encrypted keystore deployer belum dikonfigurasi. Tidak ada signing atau transaksi testnet. Kontrak dan backend native belum dideploy. Source UI tidak diubah. Commit kode terakhir tetap `342bfd3`; perubahan konfigurasi lokal tidak dipush.
+
 ## Instruksi pengguna
 
 - Task terbaru: ambil repo GitHub terbaru, perbaiki backend/smart contract yang dapat dikerjakan tanpa konfigurasi produksi, uji lokal, kemudian commit/push. Pengguna telah mengizinkan push setelah pengujian selesai.

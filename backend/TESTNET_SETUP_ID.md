@@ -66,6 +66,37 @@ biaya skill. Contoh 10 MON / 3: 3.333333333333333334,
    deployed dan seluruh environment terisi; `/ready` menjadi health check.
    Acuan: [panduan monorepo Railway](https://docs.railway.com/deployments/monorepo).
 
+## Alternatif jika kuota gratis Railway habis
+
+Untuk demo testnet, Render Free mendukung Node.js dan WebSocket. Ini hanya
+usulan hosting; belum ada service dibuat atau akun yang dihubungkan.
+
+1. Buka https://dashboard.render.com/ → New → Web Service → hubungkan repo
+   DorPrize, pilih branch `codex/native-backend`, runtime Node dan plan Free.
+2. Root Directory kosong (root repo). Build Command `npm ci --include=dev`.
+   Start Command `npm run start -w @dorprize/backend`. Gunakan Node 22.
+3. Isi environment dari `backend/.env.native.example`; DATABASE_URL memakai
+   Supabase Session pooler. Jangan memakai journal file lokal di Render Free.
+   Kontrak harus deployed dan role signing sesuai sebelum backend native dapat
+   start. Health Check Path `/ready`; jalankan satu instance.
+4. Setelah deploy sehat, URL HTTPS Render menjadi URL backend untuk teman UI.
+   Vercel dan Supabase tidak perlu dipindahkan.
+
+Render Free tidur setelah 15 menit tanpa traffic HTTP/pesan WebSocket masuk,
+startup ulang bisa sekitar satu menit, dan instance bisa restart. Karena game
+aktif ada di memori, restart dapat membuat match masuk recovery/refund, bukan
+melanjutkan ronde. Free plan dipakai untuk demo/testnet, bukan layanan produksi
+yang harus selalu aktif. PostgreSQL menyimpan hasil/jobs/audit, bukan seluruh
+engine ronde yang dapat dilanjutkan. Acuan:
+https://render.com/docs/free dan https://render.com/docs/websocket.
+
+Alternatif demo sementara: backend lokal dengan Cloudflare Quick Tunnel
+(`npm run dev:backend` lalu `npm run tunnel` dari terminal kedua), setelah native
+config lengkap dan cloudflared terpasang. Laptop/internet harus tetap aktif;
+alamat tunnel berubah ketika dibuat ulang. Jangan menjalankan backend lokal
+dan hosting pada DATABASE_URL yang sama secara bersamaan. Acuan:
+https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/.
+
 ## Setelah akun dan konfigurasi siap
 
 1. Isi role publik di `sc/.env.native.example` yang disalin ke konfigurasi lokal.
