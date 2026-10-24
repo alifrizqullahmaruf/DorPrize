@@ -1,5 +1,10 @@
 # @dorprize/contracts (sc)
 
+> **Current native MON contract:** use [NativeGameVault](NATIVE_MON.md), a separate
+> non-upgradeable vault with 18-decimal amounts and reserved skill budgets.
+> Default deploy commands select native MON. The UUPS/USDC flow below is legacy;
+> its dust and fee-capping rules do not apply to NativeGameVault.
+
 Foundry contracts for DOR PRIZE on Monad testnet (chain id `10143`). Every contract is a **UUPS proxy** (OpenZeppelin 5.6.1), following the PassChick pattern.
 
 | Contract      | Role                                                                                     |

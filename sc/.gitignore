@@ -1,5 +1,6 @@
 out/
 cache/
+deployments/native/31337.json
 broadcast/*/31337/
 .env
 deployments/31337.json

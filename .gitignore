@@ -10,6 +10,7 @@ node_modules/
 
 # testing
 coverage/
+backend/.native-state/
 
 # next.js
 .next/
@@ -34,6 +35,7 @@ yarn-error.log*
 # env files (commit only the examples)
 .env*
 !.env.example
+!.env.native.example
 
 # vercel
 .vercel

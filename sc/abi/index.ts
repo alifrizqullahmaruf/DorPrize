@@ -4,4 +4,6 @@ export { gameUsdcAbi } from "./GameUSDC";
 export { usdcFaucetAbi } from "./USDCFaucet";
 export { gameVaultAbi } from "./GameVault";
 export { roomManagerAbi } from "./RoomManager";
+export { nativeGameVaultAbi } from "./NativeGameVault";
 export { deployments, type ContractAddresses } from "./deployments";
+export { nativeDeployments, type NativeContractAddresses } from "./nativeDeployments";

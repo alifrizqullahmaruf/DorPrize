@@ -24,7 +24,9 @@
     "sc:build": "npm run build -w @dorprize/contracts",
     "sc:test": "npm run test -w @dorprize/contracts",
     "sc:abi": "npm run abi -w @dorprize/contracts",
-    "sc:deploy": "npm run deploy:monad -w @dorprize/contracts"
+    "sc:deploy": "npm run deploy:monad -w @dorprize/contracts --",
+    "test:native": "npm run test:native -w @dorprize/backend",
+    "test:postgres": "npm run test:postgres -w @dorprize/backend"
   },
   "devDependencies": {
     "concurrently": "^9.2.5",

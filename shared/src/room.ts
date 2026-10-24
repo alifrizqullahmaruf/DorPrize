@@ -17,7 +17,7 @@ import {
   type EngineState,
   type Rng,
 } from "./engine";
-import type { PlayerPublic, RoomState, RoomStatus, RoomSummary, RoundSubmit, ServerEvents } from "./protocol";
+import type { PlayerPublic, RoomState, RoomStatus, RoomSummary, RoundSubmit, ServerEvents, Skill } from "./protocol";
 import {
   DEFAULT_NAME,
   MAX_PLAYERS,
@@ -66,6 +66,19 @@ export type RoomRunnerOptions = {
   clearTimer?: (handle: TimerHandle) => void;
   /** Called when the last human left on purpose (the host may delete the room). */
   onEmpty?: (roomId: string) => void;
+  /** Server-only escrow hooks; omitted by the browser mock. */
+  beforeStart?: (room: RoomRunner) => Promise<void>;
+  validateAction?: (room: RoomRunner, playerId: string, action: RoundSubmit) => string | null;
+  onResolved?: (
+    room: RoomRunner,
+    used: Record<number, Skill>,
+    shared: ReturnType<typeof resolveRound>["shared"],
+    actions: Record<number, RoundSubmit>,
+  ) => void;
+  beforeFinish?: (room: RoomRunner) => Promise<void>;
+  onError?: (error: unknown) => void;
+  strictDeadline?: boolean;
+  preserveLobbyOnDisconnect?: boolean;
 };
 
 export type JoinResult = { ok: true; num: number } | { ok: false; error: string };
@@ -107,8 +120,16 @@ export class RoomRunner {
   private timers: TimerHandle[] = [];
   private actions: Record<number, RoundSubmit> = {};
   private lastResolve: ReturnType<typeof resolveRound> | null = null;
+  private opts: RoomRunnerOptions;
+  private starting = false;
+  private disposed = false;
+
+  get startPending() {
+    return this.starting;
+  }
 
   constructor(opts: RoomRunnerOptions) {
+    this.opts = opts;
     this.roomId = opts.roomId;
     this.name = opts.name;
     this.bid = opts.bid;
@@ -199,6 +220,7 @@ export class RoomRunner {
   /** Why `playerId` cannot join right now, or null if they can. */
   canJoin(playerId: string): string | null {
     if (this.seatOf(playerId)) return null;
+    if (this.starting) return "Konfirmasi start sedang diproses.";
     if (this.status !== "LOBBY") return "Game di room ini sudah dimulai.";
     if (this.seats.length >= this.maxPlayers && !this.seats.some((s) => s.isBot)) return "Room penuh.";
     return null;
@@ -247,6 +269,7 @@ export class RoomRunner {
 
   /** Ready up. The countdown starts once every seated player is ready (min. 2). */
   setReady(playerId: string, ready: boolean) {
+    if (this.starting) return;
     const seat = this.seatOf(playerId);
     if (!seat) return;
     if (this.status === "COUNTDOWN" && !ready) {
@@ -266,6 +289,7 @@ export class RoomRunner {
 
   /** Leave on purpose. Before the start the seat is freed; in-game the player forfeits. */
   leave(playerId: string) {
+    if (this.starting) return;
     const seat = this.seatOf(playerId);
     if (!seat) return;
     if (this.inLobby) {
@@ -292,18 +316,25 @@ export class RoomRunner {
   disconnect(playerId: string) {
     const seat = this.seatOf(playerId);
     if (!seat) return;
-    if (this.inLobby) this.freeSeat(playerId);
+    if (this.inLobby && !this.starting && !this.opts.preserveLobbyOnDisconnect) this.freeSeat(playerId);
     else seat.connected = false;
     this.checkEmpty();
   }
 
   submit(playerId: string, action: RoundSubmit) {
     const seat = this.seatOf(playerId);
-    if (!seat || this.status !== "ROUND_INPUT" || !this.engine) return;
+    if (!seat || this.status !== "ROUND_INPUT" || !this.engine) return false;
     const p = this.engine.players.find((q) => q.num === seat.num);
-    if (!p?.alive || this.actions[seat.num]) return; // dead or already locked
+    if (!p?.alive || this.actions[seat.num]) return false; // dead or already locked
+    if (this.opts.strictDeadline && (this.deadline === null || this.now() >= this.deadline)) return false;
+    const error = this.opts.validateAction?.(this, playerId, action);
+    if (error) {
+      this.send(playerId, "room:error", { message: error });
+      return false;
+    }
     this.actions[seat.num] = action;
     this.maybeEarlyResolve();
+    return true;
   }
 
   /** Add bots right away (used to seed demo rooms). */
@@ -313,12 +344,37 @@ export class RoomRunner {
   }
 
   dispose() {
+    this.disposed = true;
     this.clearTimers();
   }
 
   // ------------------------------------------------------------------ game loop
 
   private startGame() {
+    if (this.opts.beforeStart) {
+      this.starting = true;
+      void this.opts
+        .beforeStart(this)
+        .then(() => {
+          this.starting = false;
+          if (!this.disposed) this.beginGame();
+        })
+        .catch((error: unknown) => {
+          this.starting = false;
+          if (this.disposed) return;
+          this.cancelCountdown();
+          this.seats.forEach((s) => {
+            s.ready = false;
+          });
+          this.pushState();
+          this.opts.onError?.(error);
+        });
+      return;
+    }
+    this.beginGame();
+  }
+
+  private beginGame() {
     this.countdownEndsAt = null;
     this.engine = createGame(
       boardSizeFor(this.seats.length),
@@ -349,7 +405,12 @@ export class RoomRunner {
       });
     }
     // Late submits (latency, clock skew) still count within the grace window.
-    this.timers.push(this.setTimer(() => this.resolve(), TIMING.inputMs * this.scale + SUBMIT_GRACE_MS));
+    this.timers.push(
+      this.setTimer(
+        () => this.resolve(),
+        TIMING.inputMs * this.scale + (this.opts.strictDeadline ? 0 : SUBMIT_GRACE_MS),
+      ),
+    );
   }
 
   /** End the input phase early once every living player has locked in. */
@@ -365,8 +426,14 @@ export class RoomRunner {
   private resolve() {
     if (this.status !== "ROUND_INPUT" || !this.engine) return;
     this.clearTimers();
+    const used: Record<number, Skill> = {};
+    for (const p of this.engine.players) {
+      const skill = this.actions[p.num]?.skill;
+      if (skill && canUseSkill(p, skill)) used[p.num] = skill;
+    }
     const result = resolveRound(this.engine, this.actions, this.rng);
     this.engine = result.state;
+    this.opts.onResolved?.(this, used, result.shared, this.actions);
     this.lastResolve = result;
     this.deadline = null;
     this.status = "ANIMATION";
@@ -377,14 +444,34 @@ export class RoomRunner {
       this.pushState();
       this.later(TIMING.resultMs, () => {
         if (result.state.end) {
-          this.status = "FINISHED";
-          this.pushState();
-          for (const seat of this.audience) this.sendEnd(seat);
+          this.finishGame();
         } else {
           this.nextRound();
         }
       });
     });
+  }
+
+  private finishGame() {
+    const publish = () => {
+      if (this.disposed) return;
+      this.status = "FINISHED";
+      this.pushState();
+      for (const seat of this.audience) this.sendEnd(seat);
+    };
+    if (!this.opts.beforeFinish) {
+      publish();
+      return;
+    }
+    void this.opts
+      .beforeFinish(this)
+      .then(publish)
+      .catch((error: unknown) => {
+        if (this.disposed) return;
+        this.opts.onError?.(error);
+        // Never publish a completed money match until its result is durable.
+        this.later(2000 / this.scale, () => this.finishGame());
+      });
   }
 
   // ------------------------------------------------------------------ helpers
@@ -492,7 +579,7 @@ export class RoomRunner {
     this.emptySince ??= this.now();
     // An empty lobby stops and drops its bots. A running game keeps going so a
     // dropped player can reconnect; the host sweeps it if nobody comes back.
-    if (this.inLobby) {
+    if (this.inLobby && !this.starting && !this.opts.preserveLobbyOnDisconnect) {
       this.cancelCountdown();
       this.seats = this.seats.filter((s) => !s.isBot);
     }

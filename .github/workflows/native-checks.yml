@@ -1,0 +1,41 @@
+name: Native backend and contracts
+
+on:
+  push:
+    branches: [main, "codex/**"]
+    paths: ["backend/**", "sc/**", "shared/**", "package*.json", ".github/workflows/native-checks.yml"]
+  pull_request:
+    paths: ["backend/**", "sc/**", "shared/**", "package*.json", ".github/workflows/native-checks.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.8.6
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: forge fmt --check
+        working-directory: sc
+      - run: npm run test:monad -w @dorprize/contracts
+      - run: npm run test:helpers -w @dorprize/contracts
+      - run: npm run test:integration -w @dorprize/contracts
+      - run: npm run test:native
+      - run: npm run test:postgres

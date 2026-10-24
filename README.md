@@ -1,5 +1,12 @@
 # DOR PRIZE
 
+> **Native MON integration:** the current money flow uses MON on Monad Testnet
+> with MetaMask. [Native contracts](sc/NATIVE_MON.md) and the
+> [authenticated backend](backend/NATIVE_BACKEND.md) are implemented for local
+> testing. The frontend's existing USDC/demo adapter remains for the UI team to
+> migrate. No native testnet deployment is recorded. The prototype instructions
+> below describe the legacy flow. Current progress: [context.md](context.md).
+
 A blind-shot arena game for 2–10 players on a shrinking lava board, built for **Monad Blitz #2**. Players bet testnet USDC; the last one standing takes the pot. Product spec: [docs/PRD.md](docs/PRD.md).
 
 ## Live demo

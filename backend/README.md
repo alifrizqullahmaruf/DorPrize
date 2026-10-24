@@ -1,5 +1,9 @@
 # @dorprize/backend
 
+For native MON escrow, SIWE, operator settlement and recovery, see
+[NATIVE_BACKEND.md](NATIVE_BACKEND.md) and `.env.native.example`.
+The existing guest server remains the default `SERVER_MODE=demo`.
+
 DOR PRIZE game server: Node + Express + Socket.io. All round rules run in `RoomRunner` from `@dorprize/game-core` ([shared](../shared)); this server only handles connections, input validation and the room registry.
 
 ```bash

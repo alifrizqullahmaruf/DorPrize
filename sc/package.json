@@ -2,20 +2,39 @@
   "name": "@dorprize/contracts",
   "version": "0.1.0",
   "private": true,
-  "description": "DOR PRIZE smart contracts (Foundry): GameUSDC, USDCFaucet, GameVault, RoomManager.",
+  "description": "Native MON escrow and legacy USDC contracts for DOR PRIZE (Foundry).",
   "type": "module",
   "main": "./abi/index.ts",
   "types": "./abi/index.ts",
   "exports": {
-    ".": "./abi/index.ts"
+    ".": "./abi/index.ts",
+    "./native": "./native.ts"
   },
   "scripts": {
     "build": "forge build",
     "test": "forge test -vv",
+    "test:helpers": "tsx --test test/native-helpers.test.ts",
+    "test:integration": "tsx --test test/native-integration.test.ts",
+    "test:monad": "forge test --network monad -vv",
+    "typecheck": "tsc --noEmit",
     "abi": "forge build && node scripts/export-abi.mjs",
-    "deploy:local": "forge script script/Deploy.s.sol --rpc-url http://127.0.0.1:8545 --broadcast",
-    "deploy:monad": "forge script script/Deploy.s.sol --rpc-url monad_testnet --account deployer --broadcast --slow",
+    "deploy:local": "forge script script/DeployNative.s.sol --rpc-url http://127.0.0.1:8545 --unlocked --broadcast",
+    "deploy:monad": "forge script script/DeployNative.s.sol --network monad --rpc-url monad_native_testnet --broadcast --slow",
+    "deploy:legacy:local": "forge script script/Deploy.s.sol --rpc-url http://127.0.0.1:8545 --broadcast",
+    "deploy:legacy:monad": "forge script script/Deploy.s.sol --rpc-url monad_testnet --account deployer --broadcast --slow",
+    "deploy:native:local": "forge script script/DeployNative.s.sol --rpc-url http://127.0.0.1:8545 --unlocked --broadcast",
+    "deploy:native:monad": "forge script script/DeployNative.s.sol --network monad --rpc-url monad_native_testnet --broadcast --slow",
+    "deployment:record:native": "node scripts/record-native-deployment.mjs",
     "fmt": "forge fmt",
-    "verify:monad": "node scripts/verify.mjs 10143"
+    "verify:monad": "node scripts/verify.mjs 10143 DeployNative.s.sol",
+    "verify:legacy:monad": "node scripts/verify.mjs 10143 Deploy.s.sol"
+  },
+  "dependencies": {
+    "viem": "^2.57.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "tsx": "^4.20.6",
+    "typescript": "^5"
   }
 }

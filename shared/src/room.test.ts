@@ -40,6 +40,81 @@ describe("RoomRunner", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
+  it("waits for escrow start and freezes lobby mutations while confirmation is pending", async () => {
+    let confirm!: () => void;
+    const t = setup({
+      beforeStart: () =>
+        new Promise<void>((resolve) => {
+          confirm = resolve;
+        }),
+      preserveLobbyOnDisconnect: true,
+    });
+    t.room.join("alice", "Alice", "soldier");
+    t.room.join("bob", "Bob", "soldier");
+    t.room.setReady("alice", true);
+    t.room.setReady("bob", true);
+    vi.advanceTimersByTime(TIMING.countdownMs);
+    expect(t.room.startPending).toBe(true);
+    expect(t.room.engine).toBeNull();
+    t.room.leave("alice");
+    t.room.setReady("bob", false);
+    expect(t.room.humans).toHaveLength(2);
+    expect(t.room.seatOf("bob")?.ready).toBe(true);
+    expect(t.room.join("carol", "Carol", "soldier").ok).toBe(false);
+    confirm();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(t.room.status).toBe("ROUND_INPUT");
+  });
+
+  it("returns to an unready lobby if escrow start fails", async () => {
+    const onError = vi.fn();
+    const t = setup({
+      beforeStart: async () => {
+        throw new Error("roster mismatch");
+      },
+      onError,
+    });
+    t.room.join("alice", "Alice", "soldier");
+    t.room.join("bob", "Bob", "soldier");
+    t.room.setReady("alice", true);
+    t.room.setReady("bob", true);
+    await vi.advanceTimersByTimeAsync(TIMING.countdownMs);
+    expect(t.room.status).toBe("LOBBY");
+    expect(t.room.engine).toBeNull();
+    expect(t.room.humans.every((p) => !p.ready)).toBe(true);
+    expect(onError).toHaveBeenCalledOnce();
+  });
+
+  it("keeps escrow lobby seats on disconnect and rejects native submits at the deadline", () => {
+    const t = setup({ preserveLobbyOnDisconnect: true, strictDeadline: true });
+    t.room.join("alice", "Alice", "soldier");
+    t.room.disconnect("alice");
+    expect(t.room.seatOf("alice")?.connected).toBe(false);
+    startTwoPlayerGame(t);
+    vi.setSystemTime(t.room.deadline!);
+    expect(t.room.submit("alice", idle)).toBe(false);
+  });
+
+  it("publishes the game result only after the persistence hook completes", async () => {
+    let persist!: () => void;
+    const t = setup({
+      beforeFinish: () =>
+        new Promise<void>((resolve) => {
+          persist = resolve;
+        }),
+    });
+    startTwoPlayerGame(t);
+    t.room.submit("alice", { ...idle, moveTo: { x: 3, y: 3 }, shootDir: "E" });
+    t.room.submit("bob", { ...idle, moveTo: { x: 3, y: 3 }, shootDir: "W" });
+    vi.advanceTimersByTime(800 + TIMING.animationMs + TIMING.resultMs);
+    expect(t.room.status).toBe("RESULT");
+    expect(t.count("alice", "game:end")).toBe(0);
+    persist();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(t.room.status).toBe("FINISHED");
+    expect(t.count("alice", "game:end")).toBe(1);
+  });
+
   it("gives every player their own seat number in room:state", () => {
     const t = setup();
     t.room.join("alice", "Alice", "soldier");

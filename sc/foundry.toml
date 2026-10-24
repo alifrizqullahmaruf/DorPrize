@@ -16,8 +16,17 @@ remappings = [
 ]
 fs_permissions = [{ access = "read-write", path = "./deployments" }]
 
+[profile.monad]
+network = "monad"
+
+[invariant]
+runs = 128
+depth = 64
+fail_on_revert = true
+
 [rpc_endpoints]
 monad_testnet = "https://testnet-rpc.monad.xyz"
+monad_native_testnet = "${MONAD_RPC_URL}"
 local = "http://127.0.0.1:8545"
 
 # Sourcify / MonadVision-friendly build for verified deployments: FOUNDRY_PROFILE=monad_vision
