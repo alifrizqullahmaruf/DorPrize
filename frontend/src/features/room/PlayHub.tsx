@@ -19,16 +19,18 @@ type Tab = "public" | "create" | "code";
 export function PlayHub() {
   const [tab, setTab] = useState<Tab>("public");
   return (
-    <main className="relative min-h-dvh w-full bg-[radial-gradient(circle_at_50%_120%,#7a2a08,#1a0703_65%)]">
-      <div className="mx-auto flex max-w-3xl flex-col gap-4 p-3 sm:p-5">
-        <header className="flex flex-wrap items-start justify-between gap-2">
-          <Link href="/" className="btn-stone px-3 py-2 text-sm">
+    <main className="relative min-h-dvh w-full bg-[radial-gradient(circle_at_50%_120%,#7a2a08,#1a0703_65%)] safe-inset">
+      <div className="mx-auto flex max-w-3xl flex-col gap-3 p-3 sm:gap-4 sm:p-5 [@media(max-height:520px)]:gap-2.5 [@media(max-height:520px)]:py-2">
+        <header className="flex items-start justify-between gap-2">
+          <Link href="/" className="btn-stone px-3 py-1.5 text-xs sm:py-2 sm:text-sm">
             ← MENU
           </Link>
           <WalletChip />
         </header>
-        <h1 className="font-pixel text-3xl text-gold [text-shadow:0_3px_0_#5b3408]">PILIH ROOM</h1>
-        <div className="grid grid-cols-3 gap-1 rounded-lg bg-black/50 p-1">
+        <h1 className="font-pixel text-2xl text-gold [text-shadow:0_2px_0_#5b3408] sm:text-3xl [@media(max-height:520px)]:text-xl">
+          PILIH ROOM
+        </h1>
+        <div className="grid grid-cols-3 gap-1 rounded-lg bg-black/50 p-1 shadow-[0_2px_0_#000000]">
           {(
             [
               ["public", "Room Publik"],
@@ -40,7 +42,7 @@ export function PlayHub() {
               key={t}
               type="button"
               onClick={() => setTab(t)}
-              className={`rounded-md py-2 font-pixel text-xs sm:text-sm ${tab === t ? "bg-gold text-ink" : "text-stone hover:bg-white/5"}`}
+              className={`rounded-md py-1.5 font-pixel text-xs transition sm:py-2 sm:text-sm ${tab === t ? "bg-gold text-ink shadow-[0_2px_0_#5b3408]" : "text-stone hover:bg-white/5"}`}
             >
               {label}
             </button>

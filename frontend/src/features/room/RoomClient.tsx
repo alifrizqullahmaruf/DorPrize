@@ -143,19 +143,19 @@ function Lobby({ roomId, onLocked }: { roomId: string; onLocked: (bid: number) =
   };
 
   return (
-    <div className="absolute inset-0 overflow-y-auto bg-black/55">
-      <div className="mx-auto flex max-w-4xl flex-col gap-3 p-3 sm:p-5">
-        <header className="flex flex-wrap items-start justify-between gap-2">
-          <Link href="/play" onClick={leave} className="btn-stone px-3 py-2 text-sm">
+    <div className="absolute inset-0 overflow-y-auto bg-black/55 safe-inset">
+      <div className="mx-auto flex max-w-4xl flex-col gap-2.5 p-3 sm:gap-3 sm:p-5 [@media(max-height:520px)]:py-2">
+        <header className="flex items-start justify-between gap-2">
+          <Link href="/play" onClick={leave} className="btn-stone px-3 py-1.5 text-xs sm:py-2 sm:text-sm">
             ← KELUAR
           </Link>
           <WalletChip />
         </header>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 panel p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 panel p-3 sm:gap-3 sm:p-4 [@media(max-height:520px)]:p-2.5">
           <div>
-            <div className="font-pixel text-2xl text-gold">{room.name}</div>
-            <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ash">
+            <div className="font-pixel text-xl text-gold sm:text-2xl">{room.name}</div>
+            <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ash sm:text-sm">
               <span className="font-mono">#{room.roomId}</span>
               <span>
                 Papan {room.boardSize}×{room.boardSize} (otomatis)
@@ -167,41 +167,44 @@ function Lobby({ roomId, onLocked }: { roomId: string; onLocked: (bid: number) =
             </div>
           </div>
           <div className="text-right">
-            <div className="text-xs text-ash">Pot sekarang</div>
-            <div className="flex items-center justify-end gap-1.5 font-pixel text-2xl text-gold">
-              <UsdcIcon size={20} />
+            <div className="text-[10px] text-ash sm:text-xs">Pot sekarang</div>
+            <div className="flex items-center justify-end gap-1.5 font-pixel text-xl text-gold sm:text-2xl">
+              <UsdcIcon size={18} />
               {formatUsdc(room.pot)}
             </div>
-            <div className="text-xs text-ash">bid {formatUsdc(room.bid)} USDC / pemain</div>
+            <div className="text-[10px] text-ash sm:text-xs">bid {formatUsdc(room.bid)} USDC / pemain</div>
           </div>
         </div>
 
         {phase === "countdown" && (
-          <div className="anim-pop flex flex-col items-center panel p-5">
-            <div className="font-pixel text-sm text-ash">GAME DIMULAI DALAM</div>
-            <div key={secs} className="anim-pop font-pixel text-7xl text-gold">
+          <div className="anim-pop flex flex-col items-center panel p-3 sm:p-5 [@media(max-height:520px)]:p-2.5">
+            <div className="font-pixel text-xs text-ash sm:text-sm">GAME DIMULAI DALAM</div>
+            <div
+              key={secs}
+              className="anim-pop font-pixel text-5xl text-gold sm:text-7xl [@media(max-height:520px)]:text-4xl"
+            >
               {secs}
             </div>
-            <div className="text-xs text-ash">
+            <div className="text-center text-[10px] text-ash sm:text-xs">
               {BIDS_LOCKED && "Bid terkunci. "}Lawan hanya terlihat saat adu tembak — percayai firasatmu.
             </div>
           </div>
         )}
 
-        <div className="grid gap-3 md:grid-cols-[1fr_1.1fr]">
-          <section className="panel p-4">
-            <h2 className="font-pixel text-sm text-ash">PEMAIN</h2>
-            <ul className="mt-2 grid grid-cols-2 gap-2">
+        <div className="grid gap-2.5 sm:gap-3 md:grid-cols-[1fr_1.1fr]">
+          <section className="panel p-3 sm:p-4 [@media(max-height:520px)]:p-2.5">
+            <h2 className="font-pixel text-xs text-ash sm:text-sm">PEMAIN</h2>
+            <ul className="mt-2 grid grid-cols-2 gap-1.5 sm:gap-2">
               {room.players.map((p) => (
                 <li
                   key={p.num}
-                  className={`flex items-center gap-2 rounded-lg p-2 ${p.num === room.meNum ? "bg-[#3a2a08]" : "bg-white/5"}`}
+                  className={`flex items-center gap-1.5 rounded-lg p-1.5 sm:gap-2 sm:p-2 ${p.num === room.meNum ? "bg-[#3a2a08]" : "bg-white/5"}`}
                 >
-                  <SkinPreview skin={p.skin} scale={1.4} />
+                  <SkinPreview skin={p.skin} scale={1.2} />
                   <div className="min-w-0">
-                    <div className="font-pixel text-xs text-ash">#{p.num}</div>
-                    <div className="truncate text-sm">{p.name}</div>
-                    <div className={`font-pixel text-[10px] ${p.ready ? "text-gold" : "text-ash"}`}>
+                    <div className="font-pixel text-[10px] text-ash sm:text-xs">#{p.num}</div>
+                    <div className="truncate text-xs sm:text-sm">{p.name}</div>
+                    <div className={`font-pixel text-[9px] sm:text-[10px] ${p.ready ? "text-gold" : "text-ash"}`}>
                       {p.ready ? "SIAP" : "MENUNGGU"}
                     </div>
                   </div>
@@ -210,7 +213,7 @@ function Lobby({ roomId, onLocked }: { roomId: string; onLocked: (bid: number) =
               {Array.from({ length: Math.max(0, room.maxPlayers - room.players.length) }).map((_, i) => (
                 <li
                   key={`empty-${i}`}
-                  className="flex h-[66px] items-center justify-center rounded-lg border-2 border-dashed border-white/10 text-xs text-ash"
+                  className="flex h-[54px] items-center justify-center rounded-lg border-2 border-dashed border-white/10 text-xs text-ash sm:h-[66px]"
                 >
                   kosong
                 </li>
@@ -218,39 +221,39 @@ function Lobby({ roomId, onLocked }: { roomId: string; onLocked: (bid: number) =
             </ul>
           </section>
 
-          <section className="flex flex-col gap-3">
-            <div className="panel p-4">
-              <h2 className="font-pixel text-sm text-ash">PILIH SKIN</h2>
-              <div className="mt-2 grid grid-cols-4 gap-2">
+          <section className="flex flex-col gap-2.5 sm:gap-3">
+            <div className="panel p-3 sm:p-4 [@media(max-height:520px)]:p-2.5">
+              <h2 className="font-pixel text-xs text-ash sm:text-sm">PILIH SKIN</h2>
+              <div className="mt-2 grid grid-cols-4 gap-1.5 sm:gap-2">
                 {SKINS.map((s) => (
                   <button
                     key={s.id}
                     type="button"
                     disabled={ready}
                     onClick={() => setSkin(s.id)}
-                    className={`flex flex-col items-center rounded-lg border-2 p-1.5 transition ${
+                    className={`flex flex-col items-center rounded-lg border-2 p-1 transition sm:p-1.5 ${
                       skin === s.id ? "border-gold bg-[#3a2a08]" : "border-transparent bg-white/5 hover:bg-white/10"
                     } disabled:opacity-60`}
                   >
-                    <SkinPreview skin={s.id} scale={2} />
-                    <span className="mt-1 text-center font-pixel text-[9px] leading-tight">{s.name}</span>
+                    <SkinPreview skin={s.id} scale={1.5} />
+                    <span className="mt-1 text-center font-pixel text-[8px] leading-tight sm:text-[9px]">{s.name}</span>
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="flex items-center gap-4 panel p-4">
-              <div className="shrink-0 rounded bg-white p-1.5">
-                <QRCodeSVG value={url} size={92} bgColor="#ffffff" fgColor="#111111" />
+            <div className="flex items-center gap-3 panel p-3 sm:gap-4 sm:p-4 [@media(max-height:520px)]:p-2.5">
+              <div className="shrink-0 rounded bg-white p-1 sm:p-1.5">
+                <QRCodeSVG value={url} size={76} bgColor="#ffffff" fgColor="#111111" />
               </div>
-              <div className="min-w-0 text-sm">
-                <div className="font-pixel text-xs text-ash">AJAK TEMAN</div>
-                <div className="mt-1 text-ash">Scan QR atau masukkan kode:</div>
-                <div className="font-pixel text-2xl tracking-widest text-stone">{room.roomId}</div>
+              <div className="min-w-0 text-xs sm:text-sm">
+                <div className="font-pixel text-[10px] text-ash sm:text-xs">AJAK TEMAN</div>
+                <div className="mt-0.5 text-ash">Scan QR atau masukkan kode:</div>
+                <div className="font-pixel text-xl tracking-widest text-stone sm:text-2xl">{room.roomId}</div>
                 <button
                   type="button"
                   onClick={() => navigator.clipboard?.writeText(url)}
-                  className="mt-1 btn-stone px-2 py-1 text-[11px]"
+                  className="mt-1 btn-stone px-2 py-0.5 text-[10px] sm:text-[11px]"
                 >
                   SALIN LINK
                 </button>
@@ -259,10 +262,10 @@ function Lobby({ roomId, onLocked }: { roomId: string; onLocked: (bid: number) =
           </section>
         </div>
 
-        <div className="sticky bottom-0 -mx-3 bg-linear-to-t from-black/90 to-transparent p-3 sm:-mx-5 sm:p-5">
-          {joinError && <div className="mb-2 text-center text-sm text-danger">{joinError}</div>}
+        <div className="sticky bottom-0 -mx-3 bg-linear-to-t from-black/90 to-transparent p-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:-mx-5 sm:p-5">
+          {joinError && <div className="mb-1.5 text-center text-xs text-danger sm:text-sm">{joinError}</div>}
           {poor && !ready && (
-            <div className="mb-2 text-center text-xs text-ash">
+            <div className="mb-1.5 text-center text-[10px] text-ash sm:text-xs">
               Saldo tersedia {formatUsdc(account.available)} USDC — klik Faucet di kanan atas.
             </div>
           )}
@@ -270,7 +273,7 @@ function Lobby({ roomId, onLocked }: { roomId: string; onLocked: (bid: number) =
             type="button"
             onClick={onReady}
             disabled={ready || busy || phase !== "lobby"}
-            className="w-full btn-gold py-4 text-xl"
+            className="w-full btn-gold py-2.5 text-base sm:py-4 sm:text-xl [@media(max-height:520px)]:py-2 [@media(max-height:520px)]:text-sm"
           >
             {ready
               ? "SIAP ✓ — MENUNGGU MULAI"

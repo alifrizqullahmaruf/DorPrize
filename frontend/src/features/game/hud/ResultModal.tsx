@@ -93,46 +93,46 @@ export function ResultModal() {
   const names = end.winners.map((n) => `#${n} ${room.players.find((p) => p.num === n)?.name ?? ""}`).join(", ");
 
   return (
-    <div className="pointer-events-auto fixed inset-0 z-30 flex items-center justify-center bg-black/60 p-4">
+    <div className="pointer-events-auto fixed inset-0 z-30 flex items-center justify-center bg-black/60 p-3 safe-inset sm:p-4">
       {won && <Confetti />}
-      <div className="anim-pop relative max-h-[94dvh] w-full max-w-sm overflow-y-auto panel p-5 text-center">
-        <div className={`font-pixel text-3xl ${won ? "text-gold" : "text-danger"}`}>
+      <div className="anim-pop relative max-h-[92dvh] w-full max-w-sm overflow-y-auto panel p-3.5 text-center sm:p-5">
+        <div className={`font-pixel text-2xl sm:text-3xl ${won ? "text-gold" : "text-danger"}`}>
           {won ? (split ? "SERI!" : "MENANG!") : "KALAH"}
         </div>
-        <div className="mt-1 text-sm text-ash">
+        <div className="mt-1 text-xs text-ash sm:text-sm">
           {won ? (split ? "Kamu ikut berbagi pot." : "Kamu pemain terakhir yang bertahan.") : `Pemenang: ${names}`}
         </div>
-        {reasonText && <div className="mt-2 text-xs text-ash">{reasonText}</div>}
+        {reasonText && <div className="mt-1.5 text-[11px] text-ash sm:text-xs">{reasonText}</div>}
 
         {won && (
-          <div className="mx-auto mt-4 flex w-fit items-center gap-2 rounded-lg bg-[#2a1f06] px-4 py-2 font-pixel text-2xl text-gold">
-            <UsdcIcon size={22} /> +{formatUsdc(payout)}
+          <div className="mx-auto mt-2.5 flex w-fit items-center gap-1.5 rounded-lg bg-[#2a1f06] px-3 py-1.5 font-pixel text-xl text-gold sm:mt-4 sm:gap-2 sm:px-4 sm:py-2 sm:text-2xl">
+            <UsdcIcon size={18} /> +{formatUsdc(payout)}
           </div>
         )}
 
-        <dl className="mt-4 grid grid-cols-2 gap-2 text-left text-xs">
-          <div className="rounded bg-white/5 px-2 py-1.5">
-            <dt className="text-ash">Bid</dt>
-            <dd className="font-pixel">{formatUsdc(room.bid)} USDC</dd>
+        <dl className="mt-2.5 grid grid-cols-2 gap-1.5 text-left text-xs sm:mt-4 sm:gap-2">
+          <div className="rounded bg-white/5 px-2 py-1 sm:py-1.5">
+            <dt className="text-[10px] text-ash sm:text-xs">Bid</dt>
+            <dd className="font-pixel text-xs">{formatUsdc(room.bid)} USDC</dd>
           </div>
-          <div className="rounded bg-white/5 px-2 py-1.5">
-            <dt className="text-ash">Biaya skill</dt>
-            <dd className="font-pixel">{formatUsdc(fees)} USDC</dd>
+          <div className="rounded bg-white/5 px-2 py-1 sm:py-1.5">
+            <dt className="text-[10px] text-ash sm:text-xs">Biaya skill</dt>
+            <dd className="font-pixel text-xs">{formatUsdc(fees)} USDC</dd>
           </div>
-          <div className="rounded bg-white/5 px-2 py-1.5">
-            <dt className="flex items-center gap-1 text-ash">
+          <div className="rounded bg-white/5 px-2 py-1 sm:py-1.5">
+            <dt className="flex items-center gap-1 text-[10px] text-ash sm:text-xs">
               <TrophyIcon size={12} /> Kill
             </dt>
-            <dd className="font-pixel">+{kills}</dd>
+            <dd className="font-pixel text-xs">+{kills}</dd>
           </div>
-          <div className="rounded bg-white/5 px-2 py-1.5">
-            <dt className="flex items-center gap-1 text-ash">
+          <div className="rounded bg-white/5 px-2 py-1 sm:py-1.5">
+            <dt className="flex items-center gap-1 text-[10px] text-ash sm:text-xs">
               <CrownIcon size={12} /> Mahkota
             </dt>
-            <dd className="font-pixel">+{won ? 1 : 0}</dd>
+            <dd className="font-pixel text-xs">+{won ? 1 : 0}</dd>
           </div>
         </dl>
-        <div className={`mt-2 text-xs ${net >= 0 ? "text-gold" : "text-ash"}`}>
+        <div className={`mt-1.5 text-xs sm:mt-2 ${net >= 0 ? "text-gold" : "text-ash"}`}>
           Bersih: {net >= 0 ? "+" : ""}
           {formatUsdc(net)} USDC
         </div>
@@ -143,18 +143,20 @@ export function ResultModal() {
             type="button"
             onClick={onClaim}
             disabled={claim === "busy" || claim === "ok"}
-            className="mt-4 w-full btn-gold py-3 text-lg"
+            className="mt-3 w-full btn-gold py-2.5 text-base sm:mt-4 sm:py-3 sm:text-lg"
           >
             {claim === "busy" ? "MENGKLAIM…" : claim === "ok" ? "TERKLAIM ✓" : "KLAIM HADIAH"}
           </button>
         )}
-        {claimMsg && <div className={`mt-2 text-xs ${claim === "err" ? "text-danger" : "text-gold"}`}>{claimMsg}</div>}
+        {claimMsg && (
+          <div className={`mt-1.5 text-xs ${claim === "err" ? "text-danger" : "text-gold"}`}>{claimMsg}</div>
+        )}
 
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <Link href="/play" onClick={leave} className="btn-gold py-2.5 text-sm">
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-4">
+          <Link href="/play" onClick={leave} className="btn-gold py-2 text-xs sm:py-2.5 sm:text-sm">
             MAIN LAGI
           </Link>
-          <Link href="/" onClick={leave} className="btn-stone py-2.5 text-sm">
+          <Link href="/" onClick={leave} className="btn-stone py-2 text-xs sm:py-2.5 sm:text-sm">
             MENU
           </Link>
         </div>

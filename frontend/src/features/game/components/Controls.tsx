@@ -246,10 +246,9 @@ function DesktopControls() {
 
 function TouchControls() {
   const look = useRef<{ id: number; x: number; y: number } | null>(null);
-  const stick = useRef<{ id: number; cx: number; cy: number } | null>(null);
+  const stick = useRef<{ id: number; cx: number; cy: number; r: number } | null>(null);
   const [knob, setKnob] = useState({ x: 0, y: 0 });
   const hintSeen = useView((s) => s.hintSeen);
-  const R = 52;
 
   const onLookDown = (e: React.PointerEvent) => {
     if (look.current) return;
@@ -272,7 +271,8 @@ function TouchControls() {
   const onStickDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
-    stick.current = { id: e.pointerId, cx: rect.left + rect.width / 2, cy: rect.top + rect.height / 2 };
+    const r = (rect.width / 2) * 0.82;
+    stick.current = { id: e.pointerId, cx: rect.left + rect.width / 2, cy: rect.top + rect.height / 2, r };
     e.currentTarget.setPointerCapture(e.pointerId);
     onStickMove(e);
   };
@@ -282,6 +282,7 @@ function TouchControls() {
     let dx = e.clientX - s.cx;
     let dy = e.clientY - s.cy;
     const len = Math.hypot(dx, dy);
+    const R = s.r;
     if (len > R) {
       dx = (dx / len) * R;
       dy = (dy / len) * R;
@@ -310,14 +311,14 @@ function TouchControls() {
       onPointerCancel={onLookUp}
     >
       <div
-        className={`pointer-events-none absolute inset-x-0 top-[46%] flex justify-center ${hintSeen ? "hidden" : ""}`}
+        className={`pointer-events-none absolute inset-x-0 top-[46%] flex justify-center [@media(max-height:520px)]:top-[32%] ${hintSeen ? "hidden" : ""}`}
       >
-        <div className="text-center text-[11px] text-stone/80 [text-shadow:0_1px_2px_#000]">
+        <div className="text-center text-[11px] text-stone/80 [text-shadow:0_1px_2px_#000] [@media(max-height:520px)]:text-[10px]">
           Geser layar = bidik · Joystick = jalan
         </div>
       </div>
       <div
-        className="absolute bottom-[132px] left-4 size-[124px] rounded-full border-2 border-white/15 bg-black/40 [@media(max-height:520px)]:bottom-4 [@media(max-height:520px)]:left-[46%]"
+        className="absolute bottom-[144px] left-3 size-[104px] rounded-full border-2 border-white/10 bg-black/25 [@media(max-height:520px)]:bottom-[max(0.75rem,env(safe-area-inset-bottom))] [@media(max-height:520px)]:left-[max(0.75rem,env(safe-area-inset-left))] [@media(max-height:520px)]:size-[104px]"
         onPointerDown={onStickDown}
         onPointerMove={onStickMove}
         onPointerUp={onStickUp}
@@ -325,7 +326,7 @@ function TouchControls() {
         aria-label="Joystick jalan"
       >
         <div
-          className="absolute top-1/2 left-1/2 size-14 rounded-full border-2 border-white/30 bg-white/15"
+          className="absolute top-1/2 left-1/2 size-12 rounded-full border-2 border-white/25 bg-white/15"
           style={{ transform: `translate(calc(-50% + ${knob.x}px), calc(-50% + ${knob.y}px))` }}
         />
       </div>
