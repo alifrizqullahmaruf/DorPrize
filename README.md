@@ -4,7 +4,7 @@ A blind-shot arena game for 2–10 players on a shrinking lava board, built for 
 
 ## Live demo
 
-- **Play:** _<Vercel URL>_
+- **Play:** https://dorprize.vercel.app
 - **Network:** Monad testnet (chain id `10143`), explorer [testnet.monadexplorer.com](https://testnet.monadexplorer.com)
 
 | Contract    | Proxy address                                                                                                                        | Implementation                                                                                                                       |
@@ -79,7 +79,7 @@ Already cloned without submodules? Run `git submodule update --init --recursive`
 
 The game server keeps open WebSocket connections, so it does not run on Vercel. For the demo it runs on a laptop behind a free Cloudflare tunnel ([install `cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)):
 
-1. In `backend/.env` set `CORS_ORIGINS=http://localhost:3000,https://<your-app>.vercel.app`, then `npm run dev:backend`.
+1. In `backend/.env` set `CORS_ORIGINS=http://localhost:3000,https://dorprize.vercel.app`, then `npm run dev:backend`.
 2. In a second terminal: `npm run tunnel` and copy the `https://….trycloudflare.com` URL it prints.
 3. In Vercel → Settings → Environment Variables set `NEXT_PUBLIC_GAME_TRANSPORT=socket`, `NEXT_PUBLIC_BACKEND_API_URL=<tunnel URL>`, `NEXT_PUBLIC_DEMO_OFFLINE=0`, `NEXT_PUBLIC_REOWN_PROJECT_ID=<id>`, then **Redeploy**.
 4. Keep both terminals running. A quick tunnel gets a new URL every time it restarts, which means repeating step 3.
