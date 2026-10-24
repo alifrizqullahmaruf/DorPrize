@@ -80,7 +80,8 @@ The deployer key never sits in a file or gets pasted anywhere: it lives in an en
 4. Deploy and verify:
    ```bash
    cd sc
-   npm run deploy:monad    # forge script … --account deployer (asks for the keystore password)
+   echo DEPLOYER_ADDRESS=0x…your-keystore-address > .env
+   npm run deploy:monad    # forge script … --account deployer --sender $DEPLOYER_ADDRESS (asks for the keystore password)
    npm run verify:monad    # every implementation + proxy on MonadVision (Sourcify)
    ```
    The script deploys every proxy, lets the faucet mint, points the vault at `RoomManager` and writes the addresses to `deployments/10143.json`.

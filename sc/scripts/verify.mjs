@@ -17,21 +17,33 @@ if (!existsSync(run)) {
 const { transactions } = JSON.parse(readFileSync(run, "utf8"));
 const created = transactions.filter((tx) => tx.transactionType === "CREATE" && tx.contractAddress);
 
+/** Fully qualified "path/File.sol:Name" from the build output (Sourcify needs the path). */
+function qualified(name) {
+  const artifact = JSON.parse(readFileSync(join(root, "out", `${name}.sol`, `${name}.json`), "utf8"));
+  const [[path, contract]] = Object.entries(artifact.metadata.settings.compilationTarget);
+  return `${path.replaceAll("\\", "/")}:${contract}`;
+}
+
+// Optional filter: node scripts/verify.mjs 10143 <address> verifies one contract.
+const only = process.argv[3]?.toLowerCase();
+
 let failed = 0;
 for (const { contractName, contractAddress } of created) {
+  if (only && contractAddress.toLowerCase() !== only) continue;
   console.log(`\n> ${contractName} ${contractAddress}`);
   const res = spawnSync(
     "forge",
     [
       "verify-contract",
       contractAddress,
-      contractName,
+      qualified(contractName),
       "--chain",
       chainId,
       "--verifier",
       "sourcify",
       "--verifier-url",
       SOURCIFY,
+      "--watch",
     ],
     { cwd: root, stdio: "inherit", shell: process.platform === "win32" },
   );

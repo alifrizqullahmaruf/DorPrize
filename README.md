@@ -7,12 +7,14 @@ A blind-shot arena game for 2–10 players on a shrinking lava board, built for 
 - **Play:** _<Vercel URL>_
 - **Network:** Monad testnet (chain id `10143`), explorer [testnet.monadexplorer.com](https://testnet.monadexplorer.com)
 
-| Contract    | Address (proxy) |
-| ----------- | --------------- |
-| GameUSDC    | _<address>_     |
-| USDCFaucet  | _<address>_     |
-| GameVault   | _<address>_     |
-| RoomManager | _<address>_     |
+| Contract    | Proxy address                                                                                                                        | Implementation                                                                                                                       |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| GameUSDC    | [`0xf56D47AAA4b4a71417551d57529fdA362aC9E5CF`](https://testnet.monadexplorer.com/address/0xf56D47AAA4b4a71417551d57529fdA362aC9E5CF) | [`0x4a2c123fFb69A5007A01c27dF549B75AF2cDC0DE`](https://testnet.monadexplorer.com/address/0x4a2c123fFb69A5007A01c27dF549B75AF2cDC0DE) |
+| USDCFaucet  | [`0x36029A04da559abE23429Fc2c4315b28b9a490D0`](https://testnet.monadexplorer.com/address/0x36029A04da559abE23429Fc2c4315b28b9a490D0) | [`0xC7eB43F8507645BF65919783815934dFdDeD8d84`](https://testnet.monadexplorer.com/address/0xC7eB43F8507645BF65919783815934dFdDeD8d84) |
+| GameVault   | [`0xf1bBA0433e2e51571C9251F1d72E0a1B57d81716`](https://testnet.monadexplorer.com/address/0xf1bBA0433e2e51571C9251F1d72E0a1B57d81716) | [`0xa89f60Ef07C0F6d2523701db996837D2a29a8520`](https://testnet.monadexplorer.com/address/0xa89f60Ef07C0F6d2523701db996837D2a29a8520) |
+| RoomManager | [`0x58f9666c7b3eD684Ee9fabB82DA8719408C16562`](https://testnet.monadexplorer.com/address/0x58f9666c7b3eD684Ee9fabB82DA8719408C16562) | [`0x2E3aA9052A3abccbB5423f6CbAaA032A79a99cFE`](https://testnet.monadexplorer.com/address/0x2E3aA9052A3abccbB5423f6CbAaA032A79a99cFE) |
+
+All eight contracts are verified on MonadVision (Sourcify, exact match). Use the **proxy** addresses to interact.
 
 **Try it with a friend:** open the live URL in two browsers, connect a wallet on Monad testnet, claim test USDC from the **Faucet** and **Deposit** it into the vault (both are on-chain transactions), then one player creates a room and the other joins with the room code. Both press **SIAP** and the shootout starts.
 

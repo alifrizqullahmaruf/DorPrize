@@ -8,4 +8,11 @@ export type ContractAddresses = {
 };
 
 /** Proxy addresses by chain id (10143 = Monad testnet). */
-export const deployments: Record<number, ContractAddresses> = {};
+export const deployments: Record<number, ContractAddresses> = {
+  "10143": {
+    "GameUSDC": "0xf56D47AAA4b4a71417551d57529fdA362aC9E5CF",
+    "USDCFaucet": "0x36029A04da559abE23429Fc2c4315b28b9a490D0",
+    "GameVault": "0xf1bBA0433e2e51571C9251F1d72E0a1B57d81716",
+    "RoomManager": "0x58f9666c7b3eD684Ee9fabB82DA8719408C16562"
+  }
+};
