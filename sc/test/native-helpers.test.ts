@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { hashTypedData, parseEther, toHex } from "viem";
-import { nativeJoinTypedData, nativePayout, nativeSkillPrice, MON_CENT } from "../native";
+import { nativeJoinTypedData, nativePayout, nativeSkillPrice } from "../native";
 
 test("skill prices match the 1/2/5/10 MON product matrix", () => {
   for (const [bid, expected] of [
@@ -21,17 +21,40 @@ test("custom bids use half-up cent rounding, including exactly half a cent", () 
   assert.equal(nativeSkillPrice(parseEther("1.05"), "mine"), parseEther("0.16"));
 });
 
-test("10 MON pot with three winners credits 3.33 each and separates 0.01 dust", () => {
+test("10 MON pot with three winners distributes every wei in frozen winner order", () => {
+  const base = parseEther("10") / 3n;
   assert.deepEqual(nativePayout(parseEther("2.5"), 4, 3), {
     potWei: parseEther("10"),
-    payoutEachWei: parseEther("3.33"),
-    dustWei: MON_CENT,
+    payoutEachWei: base,
+    amountsWei: [base + 1n, base, base],
+    dustWei: 0n,
   });
 });
 
 test("a single winner receives all sub-cent wei instead of a second refund", () => {
   const bid = parseEther("1") + 1n;
-  assert.deepEqual(nativePayout(bid, 2, 1), { potWei: 2n * bid, payoutEachWei: 2n * bid, dustWei: 0n });
+  assert.deepEqual(nativePayout(bid, 2, 1), {
+    potWei: 2n * bid,
+    payoutEachWei: 2n * bid,
+    amountsWei: [2n * bid],
+    dustWei: 0n,
+  });
+});
+
+test("all player and winner counts conserve the pot and differ by at most one wei", () => {
+  for (let players = 2; players <= 10; players++) {
+    for (let winners = 1; winners <= players; winners++) {
+      for (let extra = 0n; extra < 10n; extra++) {
+        const result = nativePayout(parseEther("1") + extra, players, winners);
+        assert.equal(
+          result.amountsWei.reduce((sum, amount) => sum + amount, 0n),
+          result.potWei,
+        );
+        assert.ok(result.amountsWei[0] - result.amountsWei.at(-1)! <= 1n);
+        assert.equal(result.dustWei, 0n);
+      }
+    }
+  }
 });
 
 test("invalid room and settlement counts are rejected", () => {

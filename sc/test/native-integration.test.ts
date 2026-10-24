@@ -140,6 +140,43 @@ test(
     assert.equal(await client.getBalance({ address }), parseEther("9"));
     assert.equal(await read("totalLiabilities"), parseEther("9"));
 
+    // A fractional tie must agree between the helper and Solidity, even with reversed recipients.
+    const tiePlayers = [alice, bob, treasury, operator];
+    const tieId = keccak256(toHex("fractional-tie"));
+    const bid = parseEther("2.5");
+    for (const player of tiePlayers) await write(player, "deposit", [], bid);
+    const tieBlock = await client.getBlock();
+    await write(operator, "createRoom", [tieId, bid, 4, tieBlock.timestamp + 600n]);
+    for (const player of tiePlayers) {
+      const ticket = {
+        roomId: tieId,
+        player: player.address,
+        skillBudgetWei: 0n,
+        nonce: (await read("nonces", [player.address])) as bigint,
+        deadline: tieBlock.timestamp + 300n,
+      };
+      await write(player, "joinRoom", [
+        ticket,
+        await operator.signTypedData(nativeJoinTypedData(address, ticket, 31337)),
+      ]);
+    }
+    const tieRoster = nativeRosterHash(tiePlayers.map((player) => player.address));
+    await write(operator, "startRoom", [tieId, tieRoster]);
+    const tie = nativePayout(bid, 4, 3);
+    await write(operator, "settleRoom", [
+      tieId,
+      [treasury.address, bob.address, alice.address],
+      [...tie.amountsWei].reverse(),
+      [0n, 0n, 0n, 0n],
+      tieRoster,
+      keccak256(toHex("fractional-tie-result")),
+    ]);
+    assert.equal(await read("availableBalanceOf", [alice.address]), tie.amountsWei[0]);
+    assert.equal(await read("availableBalanceOf", [bob.address]), parseEther("9") + tie.amountsWei[1]);
+    assert.equal(await read("availableBalanceOf", [treasury.address]), tie.amountsWei[2]);
+    assert.equal(await read("totalRoomDust"), 0n);
+    assert.equal(await read("totalLiabilities"), await client.getBalance({ address }));
+
     // Simulation alone must never populate a deployment record. This writer demands a real creation receipt.
     await promisify(execFile)(process.execPath, ["scripts/record-native-deployment.mjs"], {
       cwd: root,

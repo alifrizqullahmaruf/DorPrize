@@ -13,7 +13,7 @@ Terakhir diperbarui: 24 Oktober 2026 (WIB).
 - Gunakan MONSKILLS. Mulai dari `monskill`; panduan addresses, gas, scaffold, tooling sudah dibaca. Dokumentasi resmi terbaru mengatasi parameter skill yang kedaluwarsa.
 - **Perbarui `context.md` setiap task/checkpoint penting**: perubahan, pengujian, batasan, dan langkah berikutnya.
 - Task lanjutan: integrasi kontrak dan validasi backend dahulu. UI sedang diperbagus teman pengguna; jangan mengubah source UI.
-- Domain frontend: `https://dorprize.vercel.app`. Alamat MetaMask publik pengguna: `0x50463168EBC5ae0Ed86efcA496b9A7A4495F7109` (format valid; belum otomatis ditetapkan sebagai owner/treasury/operator/signer).
+- Domain frontend: `https://dorprize.vercel.app`. Owner dikonfirmasi pengguna: `0x50463168EBC5ae0Ed86efcA496b9A7A4495F7109`. Wallet baru valid: `0x5EaD190F2786362c556B9BF4798326d6e11b88F2`; usulan operator, dengan satu wallet backend signer terpisah disarankan. Minimum testnet dapat memakai wallet baru untuk kedua peran server dan owner juga deployer/treasury; assignment selain owner belum dikonfirmasi/onchain.
 
 ## Kebutuhan dan cakupan
 
@@ -22,8 +22,7 @@ Acuan native yang tersedia di repo ini: `sc/NATIVE_MON.md` dan `backend/NATIVE_B
 - 2–10 pemain. Bid minimum 1 MON, custom pecahan diperbolehkan.
 - Kontrak mengurus saldo/escrow/payout/refund. Server menentukan hasil; resultHash bukan bukti kebenaran game.
 - Biaya skill di luar pot: 15%/25%/25%/40%, pembulatan harga 0,01 MON; dibayar ke treasury saat settlement dari budget yang dicadangkan saat join.
-- Payout seri dibulatkan turun ke 0,01 MON. Pemenang tunggal menerima seluruh pot.
-- Kebijakan penerima akhir dust belum diputuskan; implementasi sementara mencatat dust sebagai kewajiban terpisah tanpa fungsi sweep/withdraw.
+- Keputusan terbaru pengguna: dust dibagi rata. Implementasi membagi seluruh pot dalam wei, sisa 1 wei ke pemenang menurut urutan roster beku sampai habis. Selisih hadiah maksimal 1 wei, tanpa random. Harga skill tetap dibulatkan 0,01 MON. Field dust dipertahankan nol untuk kompatibilitas ABI.
 
 ## Temuan source
 
@@ -73,4 +72,25 @@ Source baru utama: `sc/src/NativeGameVault.sol`. API frontend/backend: `@dorpriz
 - Teman pengguna menangani UI; handoff memakai native API, MetaMask, 18 desimal dan ABI native. Jangan menyamakan deployment web Vercel dengan kesiapan backend/kontrak native.
 - Deployment jaringan/verifikasi explorer/hosting backend belum dilakukan. Diperlukan assignment role owner/operator/backendSigner/treasury, signer deployment dan server yang disimpan aman, MON testnet operator, serta RPC proyek. Alamat publik wallet saja tidak memberikan otoritas signing. Tidak ada transaksi ke testnet.
 - PostgreSQL adapter sudah diuji pada server PostgreSQL nyata sementara di localhost. Database produksi belum dihubungkan karena DATABASE_URL belum tersedia; uji game end-to-end memakai journal file lokal. Gunakan connection role server yang memiliki tabel journal, direct/session URL dan satu replica backend.
-- Tentukan kebijakan penerima/claim dust sebelum distribusi seluruh pot dianggap tuntas. Versi saat ini sengaja tidak menyediakan dust sweep/withdraw; semua dust tetap liability terpisah.
+- Kebijakan dust telah diputuskan dan implementasi terbaru membagi seluruh pot. Perubahan ini memerlukan kontrak native versi terbaru ketika deployment baru dilakukan.
+
+## Checkpoint aturan dust dan persiapan layanan
+
+Pengguna menetapkan owner lama, memberikan wallet baru, dan meminta panduan web.
+Kontrak/helper/backend kini memakai pembagian rata penuh hingga wei, bonus sisa
+mengikuti roster beku tanpa dipengaruhi urutan recipients. Getter totalRoomDust
+konstan nol; field room/event dust tetap nol dan ABI publik tidak berubah.
+Validasi: 33 Foundry Monad checks dan 7 helper lulus, termasuk dua fuzz campaign
+256 input, operator tidak dapat memindah bonus, serta semua kombinasi jumlah
+pemain/pemenang. Integrasi kontrak Anvil menguji 10 MON / 3 dengan recipients
+terbalik; 8 checks integrasi backend, 47 core dan 20 backend tests lulus.
+Typecheck seluruh workspace, ABI export, format dan diff check lulus. Tes
+backend perlu izin localhost/atomic rename di luar sandbox (EACCES/EPERM pada
+run sandbox awal); run dengan izin yang sesuai lulus. PostgreSQL tidak diubah
+atau diuji ulang pada task dust ini; validasi sebelumnya tetap tercatat di atas.
+Panduan berbahasa Indonesia ada di `backend/TESTNET_SETUP_ID.md`, meliputi
+faucet, RPC Alchemy, Supabase Session pooler, Railway shared monorepo satu
+replica, role dan urutan deployment/handoff. Konfigurasi publik owner sudah
+diisi di template; role lain hanya usulan. Tidak ada source UI diubah, dan
+belum ada deployment/transaksi testnet. Perubahan diteruskan pada branch
+`codex/native-backend` dengan otorisasi push yang sudah diberikan pengguna.

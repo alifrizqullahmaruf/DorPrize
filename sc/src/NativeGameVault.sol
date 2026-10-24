@@ -11,7 +11,7 @@ import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/Signa
 /// @title NativeGameVault
 /// @notice MON balances and bounded room escrow. The operator determines game results offchain.
 /// @dev A fresh, non-upgradeable deployment; NOT a storage-compatible upgrade of the legacy USDC vault.
-///      No external transfers during settlement/refund. Dust remains a separate liability with no sweep function.
+///      No external transfers during settlement/refund. Winners receive the entire pot, including residual wei.
 contract NativeGameVault is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
     enum Status {
         None,
@@ -62,7 +62,8 @@ contract NativeGameVault is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
     uint256 public totalBidLocked;
     uint256 public totalSkillReserved;
     uint256 public totalTreasuryClaimable;
-    uint256 public totalRoomDust;
+    /// @notice Compatibility field: the full pot is distributed; no dust is retained.
+    uint256 public constant totalRoomDust = 0;
 
     mapping(address => uint256) public nonces;
     mapping(address => bytes32) public activeRoomOf;
@@ -260,27 +261,47 @@ contract NativeGameVault is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
             revert InvalidSettlement();
         }
         uint256 pot = room.bidWei * room.players.length;
-        uint256 payout = count == 1 ? pot : (pot / count / ROUNDING_UNIT) * ROUNDING_UNIT;
         for (uint256 i; i < count; i++) {
             if (!entries[roomId][recipients[i]].joined) revert InvalidRecipient();
-            if (amountsWei[i] != payout) revert InvalidSettlement();
             for (uint256 j; j < i; j++) {
                 if (recipients[j] == recipients[i]) revert InvalidRecipient();
             }
         }
+        _validatePayouts(room, recipients, amountsWei, pot);
         // State is terminal before any further work. All credits are internal, and reverts are atomic.
         room.status = Status.Settled;
         room.resultHash = resultHash;
-        room.dustWei = pot - payout * count;
-        totalRoomDust += room.dustWei;
         totalBidLocked -= pot;
         _consumeEntries(roomId, room, skillFeesWei);
         for (uint256 i; i < count; i++) {
-            available[recipients[i]] += payout;
-            totalAvailableBalance += payout;
-            emit PayoutCredited(roomId, recipients[i], payout);
+            available[recipients[i]] += amountsWei[i];
+            totalAvailableBalance += amountsWei[i];
+            emit PayoutCredited(roomId, recipients[i], amountsWei[i]);
         }
         emit RoomSettled(roomId, resultHash, pot, room.dustWei);
+    }
+
+    /// @dev Extra wei follow frozen roster order, independent of operator-supplied recipient order.
+    function _validatePayouts(
+        Room storage room,
+        address[] calldata recipients,
+        uint256[] calldata amountsWei,
+        uint256 pot
+    ) private view {
+        uint256 base = pot / recipients.length;
+        uint256 remainder = pot % recipients.length;
+        for (uint256 i; i < room.players.length; i++) {
+            for (uint256 j; j < recipients.length; j++) {
+                if (room.players[i] != recipients[j]) continue;
+                uint256 expected = base;
+                if (remainder > 0) {
+                    expected++;
+                    remainder--;
+                }
+                if (amountsWei[j] != expected) revert InvalidSettlement();
+                break;
+            }
+        }
     }
 
     function _consumeEntries(bytes32 roomId, Room storage room, uint256[] calldata skillFeesWei) private {

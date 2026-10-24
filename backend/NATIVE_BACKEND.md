@@ -12,8 +12,12 @@ escrow. No frontend source was changed for this integration.
 - The public frontend domain supplied by the user is `https://dorprize.vercel.app`.
   Its existence does not mean that it already uses the native API.
 - The user supplied public MetaMask address
-  `0x50463168EBC5ae0Ed86efcA496b9A7A4495F7109`; its format is valid. Contract role
-  assignment and live signing authority have not been inferred from this address.
+  `0x50463168EBC5ae0Ed86efcA496b9A7A4495F7109`, now explicitly selected as owner.
+  The additional valid wallet is `0x5EaD190F2786362c556B9BF4798326d6e11b88F2`.
+  Proposed testnet roles: existing owner also deployer/treasury; new wallet operator;
+  one additional backend signer wallet is recommended. A two-wallet MVP can reuse
+  the new wallet for both server roles. Only owner assignment is confirmed; no
+  live roles or signing credentials have been configured. See `TESTNET_SETUP_ID.md`.
 - There is no recorded native testnet deployment, live backend hosting, production
   PostgreSQL connection, or real MetaMask-to-backend demo yet.
 
@@ -68,6 +72,11 @@ All amounts are unsigned base-10 **integer wei strings**, with 18 decimals.
 Never send floating-point MON values for money operations. Every authenticated
 request uses `Authorization: Bearer <token>`. Restart invalidates sessions and
 unused login challenges; the wallet signs in again.
+
+The full pot is split equally down to wei, with residual 1-wei shares assigned
+to winners in frozen roster order. Result `recipients` and `amountsWei` use that
+order. `dustWei` is always `"0"`; treasury receives only skill fees. Use the exact
+per-recipient amount, since numeric `payoutEach` is only an approximate display.
 
 1. `POST /auth/challenge` with `{ "address": "0x..." }` returns
    `{ challengeId, message, expiresAt }`. Sign the exact message using MetaMask

@@ -26,18 +26,18 @@ vault.balance >= totalAvailableBalance + totalBidLocked + totalSkillReserved
 
 ## Lifecycle and integration API
 
-| Function                                                                              | Inputs / rule                                                                                                 |
-| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `deposit()` payable                                                                   | Native MON in `value`; no approve/ERC-20 token/faucet contract                                                |
-| `withdraw(amountWei)`                                                                 | Caller receives their available balance; transfer failure reverts the debit                                   |
-| `createRoom(roomId,bidWei,maxPlayers,joinDeadline)`                                   | Operator only; nonzero unused ID, bid >=1 MON, capacity 2–10, future deadline <=24 hours                      |
-| `joinRoom(ticket,signature)`                                                          | Player sends; locks bid + approved skill budget, consumes nonce; max one live participation per wallet        |
-| `leaveRoom(roomId)`                                                                   | Waiting only; releases bid and full budget; room ID/configuration are retained                                |
-| `startRoom(roomId,expectedRosterHash)`                                                | Operator; >=2 players, before join deadline; freezes roster and sets expiry to start +15 minutes              |
-| `settleRoom(roomId,recipients,amountsWei,skillFeesWei,expectedRosterHash,resultHash)` | Operator before expiry; nonzero persisted resultHash; validates exact equal payouts and per-player fee bounds |
-| `cancelWaitingRoom(roomId)`                                                           | Operator immediately, anyone at/after join deadline; releases all reserves                                    |
-| `refundExpiredRoom(roomId)`                                                           | Anyone at/after active expiry; releases all reserves with no skill charge                                     |
-| `withdrawTreasury(amountWei)`                                                         | Only immutable treasury; pays only its settled fee balance                                                    |
+| Function                                                                              | Inputs / rule                                                                                              |
+| ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `deposit()` payable                                                                   | Native MON in `value`; no approve/ERC-20 token/faucet contract                                             |
+| `withdraw(amountWei)`                                                                 | Caller receives their available balance; transfer failure reverts the debit                                |
+| `createRoom(roomId,bidWei,maxPlayers,joinDeadline)`                                   | Operator only; nonzero unused ID, bid >=1 MON, capacity 2–10, future deadline <=24 hours                   |
+| `joinRoom(ticket,signature)`                                                          | Player sends; locks bid + approved skill budget, consumes nonce; max one live participation per wallet     |
+| `leaveRoom(roomId)`                                                                   | Waiting only; releases bid and full budget; room ID/configuration are retained                             |
+| `startRoom(roomId,expectedRosterHash)`                                                | Operator; >=2 players, before join deadline; freezes roster and sets expiry to start +15 minutes           |
+| `settleRoom(roomId,recipients,amountsWei,skillFeesWei,expectedRosterHash,resultHash)` | Operator before expiry; nonzero persisted resultHash; validates exact wei shares and per-player fee bounds |
+| `cancelWaitingRoom(roomId)`                                                           | Operator immediately, anyone at/after join deadline; releases all reserves                                 |
+| `refundExpiredRoom(roomId)`                                                           | Anyone at/after active expiry; releases all reserves with no skill charge                                  |
+| `withdrawTreasury(amountWei)`                                                         | Only immutable treasury; pays only its settled fee balance                                                 |
 
 `Waiting → Active → Settled` or `Waiting/Active → Cancelled`. Settled/Cancelled are terminal. Empty lobbies keep their ID; create a fresh internal match ID for every new escrow. Use `keccak256(toHex(internalMatchId))` consistently in frontend/backend; invitation codes are separate from permanent escrow IDs.
 
@@ -85,10 +85,10 @@ Read a new nonce when issuing a ticket after leave/rejoin. Tickets bind the wall
 
 - `pot = bidWei × confirmed roster length`.
 - A single winner receives the entire pot, including sub-cent wei from custom bids.
-- Ties: each payout is `floor(pot / winners / 0.01 MON) × 0.01 MON`. Recipients must be unique roster members. Every amount must equal the contract's computed payout.
-- `dust = pot − sum(payouts)` is recorded per room and globally; it never goes to treasury. **Dust entitlement/claim policy is still unresolved. This version has no dust withdrawal function**, so adopting a distribution policy later requires a new contract/design decision.
+- Ties: each winner receives `floor(potWei / winnerCount)`. The first `potWei % winnerCount` winners in frozen roster order receive an additional **1 wei** each. Recipients must be unique roster members; the contract enforces exact shares independently of the supplied recipient order. All pot wei are credited, and winner payouts differ by at most 1 wei.
+- No pot remainder is retained or sent to treasury. `Room.dustWei`, `totalRoomDust` and the settlement event dust field remain zero for ABI compatibility. No random source or later dust claim is required.
 - Skill fees are charged from the reserved budget into treasury, including for losing players. Unspent budget returns to available balance. Bid is already part of payout; never credit a second bid refund to winners.
-- `nativeSkillPrice` applies half-up rounding of 15%/25%/25%/40% to 0.01 MON; `nativePayout` is the shared payout helper. Backend validates the full game result before persistence/settlement.
+- `nativeSkillPrice` applies half-up rounding of 15%/25%/25%/40% to 0.01 MON; `nativePayout` is the shared payout helper. Its `amountsWei` array is in frozen winner roster order and is authoritative; `payoutEachWei` is only the base share. Backend sorts winners by frozen roster and validates the full game result before persistence/settlement. Numeric game display fields cannot represent 18-decimal precision; use exact result `amountsWei` for each player's balance/payout.
 
 Persist result and settlement job atomically before broadcast. On timeout/restart, query receipt and `getRoom().status/resultHash` before retrying. A second settle/refund transaction reverts; caller recovery must recognize the existing terminal state. The player claim button asks the backend to submit its persisted result, not a result supplied by the browser. One settlement completes the whole room; a fallback worker must also settle when winners do not claim.
 

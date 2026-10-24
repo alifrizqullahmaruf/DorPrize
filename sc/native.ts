@@ -51,7 +51,7 @@ export function nativeSkillPrice(bidWei: bigint, skill: keyof typeof nativeSkill
   return ((bidWei * nativeSkillPercent[skill] + 50n * MON_CENT) / (100n * MON_CENT)) * MON_CENT;
 }
 
-/** A single winner gets the entire pot; ties round down equally and record the remainder. */
+/** Winners MUST be ordered by frozen roster. Split all wei; earlier winners receive residual 1-wei shares. */
 export function nativePayout(bidWei: bigint, playerCount: number, winnerCount: number) {
   if (
     bidWei < 10n ** 18n ||
@@ -65,6 +65,11 @@ export function nativePayout(bidWei: bigint, playerCount: number, winnerCount: n
     throw new RangeError("Invalid native settlement terms");
   }
   const potWei = bidWei * BigInt(playerCount);
-  const payoutEachWei = winnerCount === 1 ? potWei : (potWei / BigInt(winnerCount) / MON_CENT) * MON_CENT;
-  return { potWei, payoutEachWei, dustWei: potWei - payoutEachWei * BigInt(winnerCount) };
+  const payoutEachWei = potWei / BigInt(winnerCount);
+  const remainderWei = potWei % BigInt(winnerCount);
+  const amountsWei = Array.from(
+    { length: winnerCount },
+    (_, i) => payoutEachWei + (BigInt(i) < remainderWei ? 1n : 0n),
+  );
+  return { potWei, payoutEachWei, amountsWei, dustWei: 0n };
 }

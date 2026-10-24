@@ -390,11 +390,8 @@ export class NativeService {
     const end = room.engine?.end;
     if (!end || end.winners.length === 0 || new Set(end.winners).size !== end.winners.length)
       throw new Error("Invalid authoritative game result");
-    const recipients = end.winners.map((num) => {
-      const seat = r.roster.find((p) => p.num === num);
-      if (!seat) throw new Error("Winner missing from frozen roster");
-      return seat.address;
-    });
+    const recipients = r.roster.filter((p) => end.winners.includes(p.num)).map((p) => p.address);
+    if (recipients.length !== end.winners.length) throw new Error("Winner missing from frozen roster");
     const payout = nativePayout(BigInt(r.bidWei), r.roster.length, recipients.length);
     const skillFeesWei = r.roster.map((p) => {
       const fee = BigInt(r.feesWei[playerKey(p.address)] ?? "0");
@@ -407,7 +404,7 @@ export class NativeService {
       matchId: r.matchId,
       roomId: r.roomId,
       recipients,
-      amountsWei: recipients.map(() => payout.payoutEachWei.toString()),
+      amountsWei: payout.amountsWei.map((amount) => amount.toString()),
       skillFeesWei,
       rosterHash: nativeRosterHash(r.roster.map((p) => p.address)),
       potWei: payout.potWei.toString(),

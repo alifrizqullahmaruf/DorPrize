@@ -71,10 +71,19 @@ contract NativeVaultFixture is Test {
     function _settle(bytes32 id, address[] memory winners, uint256[] memory fees) internal {
         NativeGameVault.Room memory room = vault.getRoom(id);
         uint256 pot = room.bidWei * room.players.length;
-        uint256 payout = winners.length == 1 ? pot : (pot / winners.length / 0.01 ether) * 0.01 ether;
+        uint256 payout = pot / winners.length;
+        uint256 remainder = pot % winners.length;
         uint256[] memory amounts = new uint256[](winners.length);
-        for (uint256 i; i < winners.length; i++) {
-            amounts[i] = payout;
+        for (uint256 i; i < room.players.length; i++) {
+            for (uint256 j; j < winners.length; j++) {
+                if (room.players[i] != winners[j]) continue;
+                amounts[j] = payout;
+                if (remainder > 0) {
+                    amounts[j]++;
+                    remainder--;
+                }
+                break;
+            }
         }
         vm.prank(operator);
         vault.settleRoom(id, winners, amounts, fees, room.rosterHash, RESULT);
@@ -304,25 +313,26 @@ contract NativeGameVaultTest is NativeVaultFixture {
         _solvent();
     }
 
-    function test_TieRoundsDownToCentAndKeepsDustOutOfTreasury() public {
+    function test_TieDistributesAllWeiInFrozenRosterOrder() public {
         _create(ROOM, 1 ether + 1, 3);
         _join(ROOM, alice, 0);
         _join(ROOM, bob, 0);
         _join(ROOM, carol, 0);
         _start(ROOM);
         address[] memory winners = new address[](2);
-        winners[0] = alice;
-        winners[1] = bob;
+        winners[0] = bob;
+        winners[1] = alice;
         _settle(ROOM, winners, new uint256[](3));
-        assertEq(vault.availableBalanceOf(alice), 20.5 ether - 1);
-        assertEq(vault.totalRoomDust(), 3);
-        assertEq(vault.getRoom(ROOM).dustWei, 3);
+        assertEq(vault.availableBalanceOf(alice), 20.5 ether + 1);
+        assertEq(vault.availableBalanceOf(bob), 20.5 ether);
+        assertEq(vault.totalRoomDust(), 0);
+        assertEq(vault.getRoom(ROOM).dustWei, 0);
         assertEq(vault.totalTreasuryClaimable(), 0);
         _solvent();
     }
 
-    function test_TieTenMonThreeWinnersPaysThreePointThreeThree() public {
-        // Four entrants at 2.5 MON => pot 10 MON, three winners => 0.01 MON dust.
+    function test_TieTenMonThreeWinnersDistributesEntirePot() public {
+        // 10 MON / 3: first frozen winner gets the remaining 1 wei.
         _fund(outsider, 20 ether);
         _create(ROOM, 2.5 ether, 4);
         _join(ROOM, alice, 0);
@@ -335,8 +345,60 @@ contract NativeGameVaultTest is NativeVaultFixture {
         winners[1] = bob;
         winners[2] = carol;
         _settle(ROOM, winners, new uint256[](4));
-        assertEq(vault.availableBalanceOf(alice), 20.83 ether);
-        assertEq(vault.totalRoomDust(), 0.01 ether);
+        uint256 base = uint256(10 ether) / 3;
+        assertEq(vault.availableBalanceOf(alice), 17.5 ether + base + 1);
+        assertEq(vault.availableBalanceOf(bob), 17.5 ether + base);
+        assertEq(vault.availableBalanceOf(carol), 17.5 ether + base);
+        assertEq(vault.totalRoomDust(), 0);
+        _solvent();
+    }
+
+    function test_OperatorCannotChooseResidualWeiRecipient() public {
+        _create(ROOM, 1 ether + 1, 3);
+        _join(ROOM, alice, 0);
+        _join(ROOM, bob, 0);
+        _join(ROOM, carol, 0);
+        _start(ROOM);
+        address[] memory winners = new address[](2);
+        winners[0] = carol;
+        winners[1] = bob;
+        uint256[] memory amounts = new uint256[](2);
+        uint256 base = uint256(3 ether + 3) / 2;
+        amounts[0] = base + 1;
+        amounts[1] = base;
+        bytes32 roster = vault.getRoom(ROOM).rosterHash;
+        vm.prank(operator);
+        vm.expectRevert(NativeGameVault.InvalidSettlement.selector);
+        vault.settleRoom(ROOM, winners, amounts, new uint256[](3), roster, RESULT);
+        _settle(ROOM, winners, new uint256[](3));
+        assertEq(vault.availableBalanceOf(bob), 20.5 ether + 1);
+        assertEq(vault.availableBalanceOf(carol), 20.5 ether);
+        _solvent();
+    }
+
+    function testFuzz_TieConservesEveryWei(uint256 rawBid, uint8 rawPlayers, uint8 rawWinners) public {
+        uint256 bid = bound(rawBid, 1 ether, 10 ether);
+        uint8 count = uint8(bound(rawPlayers, 2, 10));
+        uint8 winnerCount = uint8(bound(rawWinners, 1, count));
+        _create(ROOM, bid, count);
+        address[] memory winners = new address[](winnerCount);
+        for (uint256 i; i < count; i++) {
+            address player = address(uint160(1000 + i));
+            _fund(player, bid);
+            _join(ROOM, player, 0);
+            if (i < winnerCount) winners[winnerCount - 1 - i] = player;
+        }
+        _start(ROOM);
+        _settle(ROOM, winners, new uint256[](count));
+        uint256 pot = bid * count;
+        uint256 paid;
+        for (uint256 i; i < winnerCount; i++) {
+            uint256 amount = vault.availableBalanceOf(address(uint160(1000 + i)));
+            assertEq(amount, pot / winnerCount + (i < pot % winnerCount ? 1 : 0));
+            paid += amount;
+        }
+        assertEq(paid, pot);
+        assertEq(vault.totalRoomDust(), 0);
         _solvent();
     }
 
@@ -586,8 +648,13 @@ contract NativeGameVaultTest is NativeVaultFixture {
         assertEq(vault.totalBidLocked(), 0);
         assertEq(vault.totalSkillReserved(), 0);
         uint256 pot = bid * 3;
-        uint256 payout = count == 1 ? pot : (pot / count / 0.01 ether) * 0.01 ether;
-        assertEq(payout * count + vault.totalRoomDust(), pot);
+        uint256 paid;
+        for (uint256 i; i < count; i++) {
+            uint256 returnedBudget = budget - (i == 0 ? fee : 0);
+            paid += vault.availableBalanceOf(all[i]) - (20 ether - bid - budget + returnedBudget);
+        }
+        assertEq(paid, pot);
+        assertEq(vault.totalRoomDust(), 0);
         _solvent();
     }
 }
