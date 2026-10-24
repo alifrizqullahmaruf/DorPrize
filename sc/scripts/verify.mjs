@@ -1,6 +1,6 @@
 // Verify every contract created by the last `forge script` deploy on MonadVision (Sourcify).
 // Usage: node scripts/verify.mjs <chainId>   (run from sc/, after `npm run deploy:monad`)
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,6 +10,10 @@ const chainId = process.argv[2] ?? "10143";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const run = join(root, "broadcast", "Deploy.s.sol", chainId, "run-latest.json");
 
+if (!existsSync(run)) {
+  console.error(`No deployment found at ${run}. Run "npm run deploy:monad" first.`);
+  process.exit(1);
+}
 const { transactions } = JSON.parse(readFileSync(run, "utf8"));
 const created = transactions.filter((tx) => tx.transactionType === "CREATE" && tx.contractAddress);
 

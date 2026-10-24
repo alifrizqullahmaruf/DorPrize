@@ -11,8 +11,9 @@ import {RoomManager} from "../src/RoomManager.sol";
 /// @notice Deploys GameUSDC, USDCFaucet, GameVault and RoomManager behind UUPS proxies,
 ///         wires their roles and writes the proxy addresses to deployments/<chainId>.json.
 ///
-/// Signing: pass an encrypted keystore account (`--account deployer --sender <address>`, set up
-/// once with `cast wallet import deployer --interactive`). No private key is read from a file.
+/// Signing: an encrypted keystore account (`--account deployer`, set up once with
+/// `cast wallet import deployer --interactive`) plus its public address in DEPLOYER_ADDRESS
+/// (sc/.env). No private key is read from a file.
 /// On a local anvil chain (31337) the well-known dev account is used instead.
 ///
 /// Env: INITIAL_OWNER, BACKEND_SIGNER, OPERATOR (all default to the deployer),
@@ -33,8 +34,9 @@ contract Deploy is Script {
     function run() external returns (Deployment memory d) {
         bool local = block.chainid == 31337;
         // With --account/--sender, msg.sender is the keystore account that will sign.
-        address deployer = local ? vm.addr(ANVIL_KEY) : msg.sender;
-        require(deployer != DEFAULT_SENDER, "Pass --account <keystore name> (cast wallet import)");
+        // --account only picks the signing key; the script needs the address to broadcast from.
+        address deployer = local ? vm.addr(ANVIL_KEY) : vm.envOr("DEPLOYER_ADDRESS", msg.sender);
+        require(deployer != DEFAULT_SENDER, "Set DEPLOYER_ADDRESS in sc/.env (the keystore account address)");
         address owner = vm.envOr("INITIAL_OWNER", deployer);
         address signer = vm.envOr("BACKEND_SIGNER", deployer);
         address operator = vm.envOr("OPERATOR", deployer);
